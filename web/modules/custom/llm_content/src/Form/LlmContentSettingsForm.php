@@ -6,7 +6,6 @@ namespace Drupal\llm_content\Form;
 
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteBuilderInterface;
@@ -29,11 +28,6 @@ final class LlmContentSettingsForm extends ConfigFormBase {
   protected EntityDisplayRepositoryInterface $entityDisplayRepository;
 
   /**
-   * The module handler.
-   */
-  protected ModuleHandlerInterface $moduleHandler;
-
-  /**
    * The XML Sitemap link manager.
    */
   protected XmlSitemapLinkManagerInterface $xmlSitemapLinkManager;
@@ -50,7 +44,6 @@ final class LlmContentSettingsForm extends ConfigFormBase {
     $instance = parent::create($container);
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->entityDisplayRepository = $container->get('entity_display.repository');
-    $instance->moduleHandler = $container->get('module_handler');
     $instance->xmlSitemapLinkManager = $container->get(XmlSitemapLinkManagerInterface::class);
     $instance->routeBuilder = $container->get('router.builder');
     return $instance;
@@ -136,10 +129,15 @@ final class LlmContentSettingsForm extends ConfigFormBase {
       '#disabled' => !$xmlsitemapAvailable,
     ];
 
-    $priorityOptions = [];
-    for ($i = 0; $i <= 10; $i++) {
-      $value = number_format($i / 10, 1);
-      $priorityOptions[$value] = $value;
+    if ($xmlsitemapAvailable && function_exists('xmlsitemap_get_priority_options')) {
+      $priorityOptions = xmlsitemap_get_priority_options();
+    }
+    else {
+      $priorityOptions = [];
+      for ($i = 0; $i <= 10; $i++) {
+        $value = number_format($i / 10, 1);
+        $priorityOptions[$value] = $value;
+      }
     }
 
     $form['xmlsitemap']['xmlsitemap_priority'] = [
@@ -157,7 +155,7 @@ final class LlmContentSettingsForm extends ConfigFormBase {
     $form['xmlsitemap']['xmlsitemap_changefreq'] = [
       '#type' => 'select',
       '#title' => $this->t('Change frequency'),
-      '#options' => [
+      '#options' => ($xmlsitemapAvailable && function_exists('xmlsitemap_get_changefreq_options')) ? xmlsitemap_get_changefreq_options() : [
         3600 => $this->t('Hourly'),
         86400 => $this->t('Daily'),
         604800 => $this->t('Weekly'),

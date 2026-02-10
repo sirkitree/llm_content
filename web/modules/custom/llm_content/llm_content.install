@@ -51,7 +51,7 @@ function llm_content_schema(): array {
 /**
  * Add xmlsitemap integration config defaults.
  */
-function llm_content_update_10001(): void {
+function llm_content_update_11001(): void {
   $config = \Drupal::configFactory()->getEditable('llm_content.settings');
   $defaults = [
     'xmlsitemap_integration' => FALSE,

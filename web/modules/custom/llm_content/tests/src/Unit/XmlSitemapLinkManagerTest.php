@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\llm_content\Unit;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Database\Connection;
@@ -20,21 +21,28 @@ use PHPUnit\Framework\TestCase;
 class XmlSitemapLinkManagerTest extends TestCase {
 
   /**
+   * Creates a manager with xmlsitemap unavailable (null link storage).
+   */
+  private function createUnavailableManager(): XmlSitemapLinkManager {
+    $moduleHandler = $this->createStub(ModuleHandlerInterface::class);
+    $moduleHandler->method('moduleExists')->with('xmlsitemap')->willReturn(FALSE);
+
+    return new XmlSitemapLinkManager(
+      $moduleHandler,
+      $this->createStub(ConfigFactoryInterface::class),
+      $this->createStub(Connection::class),
+      NULL,
+      $this->createStub(TimeInterface::class),
+    );
+  }
+
+  /**
    * Tests isAvailable() returns false when xmlsitemap is not installed.
    *
    * @covers ::isAvailable
    */
   public function testIsAvailableWhenModuleNotInstalled(): void {
-    $moduleHandler = $this->createStub(ModuleHandlerInterface::class);
-    $moduleHandler->method('moduleExists')->with('xmlsitemap')->willReturn(FALSE);
-
-    $manager = new XmlSitemapLinkManager(
-      $moduleHandler,
-      $this->createStub(ConfigFactoryInterface::class),
-      $this->createStub(Connection::class),
-    );
-
-    $this->assertFalse($manager->isAvailable());
+    $this->assertFalse($this->createUnavailableManager()->isAvailable());
   }
 
   /**
@@ -50,6 +58,8 @@ class XmlSitemapLinkManagerTest extends TestCase {
       $moduleHandler,
       $this->createStub(ConfigFactoryInterface::class),
       $this->createStub(Connection::class),
+      new \stdClass(),
+      $this->createStub(TimeInterface::class),
     );
 
     $this->assertTrue($manager->isAvailable());
@@ -61,13 +71,24 @@ class XmlSitemapLinkManagerTest extends TestCase {
    * @covers ::isEnabled
    */
   public function testIsEnabledWhenModuleNotInstalled(): void {
+    $this->assertFalse($this->createUnavailableManager()->isEnabled());
+  }
+
+  /**
+   * Tests isEnabled() returns false when linkStorage is null.
+   *
+   * @covers ::isEnabled
+   */
+  public function testIsEnabledWhenLinkStorageNull(): void {
     $moduleHandler = $this->createStub(ModuleHandlerInterface::class);
-    $moduleHandler->method('moduleExists')->with('xmlsitemap')->willReturn(FALSE);
+    $moduleHandler->method('moduleExists')->with('xmlsitemap')->willReturn(TRUE);
 
     $manager = new XmlSitemapLinkManager(
       $moduleHandler,
       $this->createStub(ConfigFactoryInterface::class),
       $this->createStub(Connection::class),
+      NULL,
+      $this->createStub(TimeInterface::class),
     );
 
     $this->assertFalse($manager->isEnabled());
@@ -92,6 +113,8 @@ class XmlSitemapLinkManagerTest extends TestCase {
       $moduleHandler,
       $configFactory,
       $this->createStub(Connection::class),
+      new \stdClass(),
+      $this->createStub(TimeInterface::class),
     );
 
     $this->assertFalse($manager->isEnabled());
@@ -116,6 +139,8 @@ class XmlSitemapLinkManagerTest extends TestCase {
       $moduleHandler,
       $configFactory,
       $this->createStub(Connection::class),
+      new \stdClass(),
+      $this->createStub(TimeInterface::class),
     );
 
     $this->assertTrue($manager->isEnabled());
@@ -127,16 +152,8 @@ class XmlSitemapLinkManagerTest extends TestCase {
    * @covers ::saveNodeLink
    */
   public function testSaveNodeLinkDoesNothingWhenDisabled(): void {
-    $moduleHandler = $this->createStub(ModuleHandlerInterface::class);
-    $moduleHandler->method('moduleExists')->with('xmlsitemap')->willReturn(FALSE);
+    $manager = $this->createUnavailableManager();
 
-    $manager = new XmlSitemapLinkManager(
-      $moduleHandler,
-      $this->createStub(ConfigFactoryInterface::class),
-      $this->createStub(Connection::class),
-    );
-
-    // Should not throw or call any xmlsitemap services.
     $node = $this->createStub(\Drupal\node\NodeInterface::class);
     $manager->saveNodeLink($node);
     $this->addToAssertionCount(1);
@@ -148,17 +165,7 @@ class XmlSitemapLinkManagerTest extends TestCase {
    * @covers ::deleteNodeLink
    */
   public function testDeleteNodeLinkDoesNothingWhenDisabled(): void {
-    $moduleHandler = $this->createStub(ModuleHandlerInterface::class);
-    $moduleHandler->method('moduleExists')->with('xmlsitemap')->willReturn(FALSE);
-
-    $manager = new XmlSitemapLinkManager(
-      $moduleHandler,
-      $this->createStub(ConfigFactoryInterface::class),
-      $this->createStub(Connection::class),
-    );
-
-    // Should not throw or call any xmlsitemap services.
-    $manager->deleteNodeLink(42);
+    $this->createUnavailableManager()->deleteNodeLink(42);
     $this->addToAssertionCount(1);
   }
 
@@ -168,17 +175,7 @@ class XmlSitemapLinkManagerTest extends TestCase {
    * @covers ::removeAllLinks
    */
   public function testRemoveAllLinksDoesNothingWhenNotAvailable(): void {
-    $moduleHandler = $this->createStub(ModuleHandlerInterface::class);
-    $moduleHandler->method('moduleExists')->with('xmlsitemap')->willReturn(FALSE);
-
-    $manager = new XmlSitemapLinkManager(
-      $moduleHandler,
-      $this->createStub(ConfigFactoryInterface::class),
-      $this->createStub(Connection::class),
-    );
-
-    // Should not throw or call any xmlsitemap services.
-    $manager->removeAllLinks();
+    $this->createUnavailableManager()->removeAllLinks();
     $this->addToAssertionCount(1);
   }
 

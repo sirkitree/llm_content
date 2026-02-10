@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\llm_content\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -29,10 +30,30 @@ final class XmlSitemapLinkManager implements XmlSitemapLinkManagerInterface {
    */
   public const SUBTYPE_INDEX = 'index';
 
+  /**
+   * Number of links to save per batch in syncAllLinks().
+   */
+  private const SYNC_BATCH_SIZE = 100;
+
+  /**
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
+   *   The module handler.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   The config factory.
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
+   * @param object|null $linkStorage
+   *   The xmlsitemap link storage service, or NULL if xmlsitemap is absent.
+   *   Typed as object because XmlSitemapLinkStorageInterface may not exist.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
+   */
   public function __construct(
     protected ModuleHandlerInterface $moduleHandler,
     protected ConfigFactoryInterface $configFactory,
     protected Connection $database,
+    protected ?object $linkStorage,
+    protected TimeInterface $time,
   ) {}
 
   /**
@@ -46,7 +67,7 @@ final class XmlSitemapLinkManager implements XmlSitemapLinkManagerInterface {
    * {@inheritdoc}
    */
   public function isEnabled(): bool {
-    if (!$this->isAvailable()) {
+    if (!$this->isAvailable() || !$this->linkStorage) {
       return FALSE;
     }
     return (bool) $this->configFactory->get('llm_content.settings')
@@ -62,7 +83,6 @@ final class XmlSitemapLinkManager implements XmlSitemapLinkManagerInterface {
     }
 
     $config = $this->configFactory->get('llm_content.settings');
-    $linkStorage = \Drupal::service('xmlsitemap.link_storage');
 
     $link = [
       'type' => self::LINK_TYPE,
@@ -73,11 +93,11 @@ final class XmlSitemapLinkManager implements XmlSitemapLinkManagerInterface {
       'access' => $node->isPublished() ? 1 : 0,
       'status' => 1,
       'lastmod' => $node->getChangedTime(),
-      'priority' => (float) ($config->get('xmlsitemap_priority') ?? '0.5'),
-      'changefreq' => (int) ($config->get('xmlsitemap_changefreq') ?? 604800),
+      'priority' => (float) $config->get('xmlsitemap_priority'),
+      'changefreq' => (int) $config->get('xmlsitemap_changefreq'),
     ];
 
-    $linkStorage->save($link);
+    $this->linkStorage->save($link);
   }
 
   /**
@@ -88,8 +108,7 @@ final class XmlSitemapLinkManager implements XmlSitemapLinkManagerInterface {
       return;
     }
 
-    $linkStorage = \Drupal::service('xmlsitemap.link_storage');
-    $linkStorage->delete(self::LINK_TYPE, (string) $nid);
+    $this->linkStorage->delete(self::LINK_TYPE, (string) $nid);
   }
 
   /**
@@ -101,9 +120,8 @@ final class XmlSitemapLinkManager implements XmlSitemapLinkManagerInterface {
     }
 
     $config = $this->configFactory->get('llm_content.settings');
-    $linkStorage = \Drupal::service('xmlsitemap.link_storage');
-    $priority = (float) ($config->get('xmlsitemap_index_priority') ?? '0.7');
-    $changefreq = (int) ($config->get('xmlsitemap_changefreq') ?? 604800);
+    $priority = (float) $config->get('xmlsitemap_index_priority');
+    $changefreq = (int) $config->get('xmlsitemap_changefreq');
 
     $indexLinks = [
       'llms_txt' => '/llms.txt',
@@ -119,11 +137,11 @@ final class XmlSitemapLinkManager implements XmlSitemapLinkManagerInterface {
         'language' => '',
         'access' => 1,
         'status' => 1,
-        'lastmod' => \Drupal::time()->getRequestTime(),
+        'lastmod' => $this->time->getRequestTime(),
         'priority' => $priority,
         'changefreq' => $changefreq,
       ];
-      $linkStorage->save($link);
+      $this->linkStorage->save($link);
     }
   }
 
@@ -141,51 +159,55 @@ final class XmlSitemapLinkManager implements XmlSitemapLinkManagerInterface {
     // Save index links.
     $this->saveIndexLinks();
 
-    // Save links for all nodes with stored markdown.
+    // Save links for all nodes with stored markdown in batches.
     $config = $this->configFactory->get('llm_content.settings');
     $enabledTypes = $config->get('enabled_content_types') ?? [];
     if (empty($enabledTypes)) {
       return;
     }
 
-    $query = $this->database->select('llm_content_markdown', 'm');
-    $query->innerJoin('node_field_data', 'n', 'm.nid = n.nid AND m.langcode = n.langcode');
-    $query->fields('m', ['nid', 'langcode']);
-    $query->fields('n', ['type', 'status', 'changed']);
-    $query->condition('n.type', $enabledTypes, 'IN');
-    $results = $query->execute();
+    $priority = (float) $config->get('xmlsitemap_priority');
+    $changefreq = (int) $config->get('xmlsitemap_changefreq');
+    $offset = 0;
 
-    $linkStorage = \Drupal::service('xmlsitemap.link_storage');
-    $priority = (float) ($config->get('xmlsitemap_priority') ?? '0.5');
-    $changefreq = (int) ($config->get('xmlsitemap_changefreq') ?? 604800);
+    do {
+      $query = $this->database->select('llm_content_markdown', 'm');
+      $query->innerJoin('node_field_data', 'n', 'm.nid = n.nid AND m.langcode = n.langcode');
+      $query->fields('m', ['nid', 'langcode']);
+      $query->fields('n', ['type', 'status', 'changed']);
+      $query->condition('n.type', $enabledTypes, 'IN');
+      $query->range($offset, self::SYNC_BATCH_SIZE);
+      $results = $query->execute()->fetchAll();
 
-    foreach ($results as $row) {
-      $link = [
-        'type' => self::LINK_TYPE,
-        'id' => (string) $row->nid,
-        'subtype' => self::SUBTYPE_NODE,
-        'loc' => '/node/' . $row->nid . '/llm-md',
-        'language' => $row->langcode,
-        'access' => (int) $row->status,
-        'status' => 1,
-        'lastmod' => (int) $row->changed,
-        'priority' => $priority,
-        'changefreq' => $changefreq,
-      ];
-      $linkStorage->save($link);
-    }
+      foreach ($results as $row) {
+        $link = [
+          'type' => self::LINK_TYPE,
+          'id' => (string) $row->nid,
+          'subtype' => self::SUBTYPE_NODE,
+          'loc' => '/node/' . $row->nid . '/llm-md',
+          'language' => $row->langcode,
+          'access' => (int) $row->status,
+          'status' => 1,
+          'lastmod' => (int) $row->changed,
+          'priority' => $priority,
+          'changefreq' => $changefreq,
+        ];
+        $this->linkStorage->save($link);
+      }
+
+      $offset += self::SYNC_BATCH_SIZE;
+    } while (count($results) === self::SYNC_BATCH_SIZE);
   }
 
   /**
    * {@inheritdoc}
    */
   public function removeAllLinks(): void {
-    if (!$this->isAvailable()) {
+    if (!$this->isAvailable() || !$this->linkStorage) {
       return;
     }
 
-    $linkStorage = \Drupal::service('xmlsitemap.link_storage');
-    $linkStorage->deleteMultiple(['type' => self::LINK_TYPE]);
+    $this->linkStorage->deleteMultiple(['type' => self::LINK_TYPE]);
   }
 
 }

@@ -27,4 +27,4 @@ llm_content.settings:
       label: 'XML Sitemap priority for index endpoints'
     disable_builtin_sitemap:
       type: boolean
-      label: 'Disable built-in sitemap-llm.xml'
+      label: 'Disable built-in /sitemap-llm.xml'

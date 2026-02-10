@@ -8,6 +8,12 @@ services:
 
   Drupal\llm_content\Service\XmlSitemapLinkManagerInterface:
     class: Drupal\llm_content\Service\XmlSitemapLinkManager
+    arguments:
+      - '@module_handler'
+      - '@config.factory'
+      - '@database'
+      - '@?xmlsitemap.link_storage'
+      - '@datetime.time'
 
   llm_content.route_subscriber:
     class: Drupal\llm_content\Routing\RouteSubscriber

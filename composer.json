@@ -21,7 +21,6 @@
         "drupal/core-recipe-unpack": "^11.3",
         "drupal/core-recommended": "^11.3",
         "drupal/paragraphs": "^1.20",
-        "drupal/xmlsitemap": "^2.0",
         "drush/drush": "^13",
         "league/html-to-markdown": "^5.0"
     },
@@ -104,6 +103,7 @@
         }
     },
     "require-dev": {
+        "drupal/xmlsitemap": "^2.0",
         "phpunit/phpunit": "^12.5"
     }
 }
