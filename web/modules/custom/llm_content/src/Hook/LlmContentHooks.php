@@ -8,7 +8,7 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Hook\Attribute\Hook;
-use Drupal\Core\Requirements\RequirementSeverity;
+use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\llm_content\Service\MarkdownConverterInterface;
 use Drupal\node\NodeInterface;
@@ -44,7 +44,7 @@ final class LlmContentHooks {
       $requirements['llm_content_html_to_markdown'] = [
         'title' => $this->t('LLM Content - HTML to Markdown library'),
         'value' => $this->t('Installed'),
-        'severity' => RequirementSeverity::Ok,
+        'severity' => RequirementSeverity::OK,
       ];
     }
 

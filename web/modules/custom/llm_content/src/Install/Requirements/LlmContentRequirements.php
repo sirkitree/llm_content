@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\llm_content\Install\Requirements;
 
 use Drupal\Core\Extension\InstallRequirementsInterface;
-use Drupal\Core\Requirements\RequirementSeverity;
+use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
