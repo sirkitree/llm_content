@@ -47,7 +47,7 @@ final class LlmSitemapController extends ControllerBase {
           $xml->startElement('url');
 
           $xml->startElement('loc');
-          $xml->text($baseUrl . '/llm-md/node/' . $node->id());
+          $xml->text(Url::fromRoute('llm_content.markdown_view', ['node' => $node->id()], ['absolute' => TRUE])->toString());
           $xml->endElement();
 
           $xml->startElement('lastmod');

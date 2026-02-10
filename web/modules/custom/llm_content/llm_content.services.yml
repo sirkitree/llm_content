@@ -5,3 +5,10 @@ services:
 
   Drupal\llm_content\Service\MarkdownConverterInterface:
     class: Drupal\llm_content\Service\MarkdownConverter
+
+  llm_content.path_processor:
+    class: Drupal\llm_content\PathProcessor\LlmMarkdownPathProcessor
+    arguments: ['@path_alias.manager']
+    tags:
+      - { name: path_processor_inbound, priority: 50 }
+      - { name: path_processor_outbound, priority: 200 }

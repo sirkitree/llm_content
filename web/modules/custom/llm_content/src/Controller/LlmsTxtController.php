@@ -7,6 +7,7 @@ namespace Drupal\llm_content\Controller;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponse;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Url;
 use Drupal\llm_content\Service\MarkdownConverterInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -59,7 +60,7 @@ final class LlmsTxtController extends ControllerBase {
           $nodes = $nodeStorage->loadMultiple($batch);
           foreach ($nodes as $node) {
             $title = $node->label() ?? 'Untitled';
-            $url = '/llm-md/node/' . $node->id();
+            $url = Url::fromRoute('llm_content.markdown_view', ['node' => $node->id()])->toString();
             $description = '';
             if ($node->hasField('body') && !$node->get('body')->isEmpty()) {
               $body = $node->get('body')->first();

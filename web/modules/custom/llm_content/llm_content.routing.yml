@@ -1,5 +1,5 @@
 llm_content.markdown_view:
-  path: '/llm-md/node/{node}'
+  path: '/node/{node}/llm-md'
   defaults:
     _controller: '\Drupal\llm_content\Controller\LlmMarkdownController::view'
     _title: 'Markdown View'
