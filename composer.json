@@ -20,6 +20,7 @@
         "drupal/core-project-message": "^11.3",
         "drupal/core-recipe-unpack": "^11.3",
         "drupal/core-recommended": "^11.3",
+        "drupal/paragraphs": "^1.20",
         "drush/drush": "^13",
         "league/html-to-markdown": "^5.0"
     },
@@ -100,5 +101,8 @@
                 "      composer remove drupal/core-project-message"
             ]
         }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.5"
     }
 }
