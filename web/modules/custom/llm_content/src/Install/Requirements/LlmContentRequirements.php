@@ -11,7 +11,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 /**
  * Install-time requirements for the LLM Content module.
  */
-class LlmContentRequirements implements InstallRequirementsInterface {
+final class LlmContentRequirements implements InstallRequirementsInterface {
 
   /**
    * {@inheritdoc}
