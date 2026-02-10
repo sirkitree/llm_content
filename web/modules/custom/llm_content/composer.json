@@ -1,9 +1,0 @@
-{
-  "name": "drupal/llm_content",
-  "type": "drupal-module",
-  "description": "Markdown LLM views for Drupal content",
-  "require": {
-    "php": ">=8.3",
-    "league/html-to-markdown": "^5.0"
-  }
-}
