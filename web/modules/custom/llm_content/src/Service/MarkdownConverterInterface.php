@@ -34,6 +34,17 @@ interface MarkdownConverterInterface {
   public function getMarkdown(NodeInterface $node): string;
 
   /**
+   * Gets stored markdown for a node without triggering generation.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   The node to get markdown for.
+   *
+   * @return string|null
+   *   The stored markdown content, or NULL if not yet generated.
+   */
+  public function getStoredMarkdown(NodeInterface $node): ?string;
+
+  /**
    * Deletes stored markdown for a node.
    *
    * @param int $nid

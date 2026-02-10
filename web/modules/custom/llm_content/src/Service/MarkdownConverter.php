@@ -65,13 +65,18 @@ final class MarkdownConverter implements MarkdownConverterInterface {
         $text = $matches[1];
         $url = $matches[2];
         // Allow relative URLs, http(s), mailto, and tel schemes.
-        if (preg_match('#^(https?://|mailto:|tel:|/|#)#i', $url)) {
+        if (preg_match('#^(https?://|mailto:|tel:|/|\#)#i', $url)) {
           return "[{$text}]({$url})";
         }
         return "[{$text}](#)";
       },
       $markdown
     ) ?? $markdown;
+
+    // Collapse whitespace-only lines and excessive newlines from nested
+    // paragraph divs (e.g. lines with just spaces or non-breaking spaces).
+    $markdown = preg_replace("/\n[ \t]*\n[ \t]*\n/", "\n\n", $markdown) ?? $markdown;
+    $markdown = preg_replace("/\n{3,}/", "\n\n", $markdown) ?? $markdown;
 
     // Build frontmatter.
     $alias = $this->aliasManager->getAliasByPath('/node/' . $node->id());
@@ -115,23 +120,107 @@ final class MarkdownConverter implements MarkdownConverterInterface {
     $xpath = new \DOMXPath($doc);
 
     // Remove elements by ID (comments wrapper).
-    foreach ($xpath->query('//*[@id="comments"]') as $node) {
+    // Use iterator_to_array() on all XPath loops that mutate the DOM,
+    // because DOMNodeList is live and mutations during iteration skip nodes.
+    foreach (iterator_to_array($xpath->query('//*[@id="comments"]')) as $node) {
       $node->parentNode->removeChild($node);
     }
 
     // Remove elements with data-drupal-selector="comments".
-    foreach ($xpath->query('//*[@data-drupal-selector="comments"]') as $node) {
+    foreach (iterator_to_array($xpath->query('//*[@data-drupal-selector="comments"]')) as $node) {
       $node->parentNode->removeChild($node);
     }
 
     // Remove "links inline" lists (contains "Log in to post comments").
-    foreach ($xpath->query('//ul[contains(@class, "links") and contains(@class, "inline")]') as $node) {
+    foreach (iterator_to_array($xpath->query('//ul[contains(@class, "links") and contains(@class, "inline")]')) as $node) {
       $node->parentNode->removeChild($node);
     }
 
     // Remove nav elements.
-    foreach ($xpath->query('//nav') as $node) {
+    foreach (iterator_to_array($xpath->query('//nav')) as $node) {
       $node->parentNode->removeChild($node);
+    }
+
+    // Convert <details>/<summary> (accordion paragraphs) to heading + content.
+    foreach (iterator_to_array($xpath->query('//details')) as $details) {
+      $summary = $xpath->query('summary', $details)->item(0);
+      $parent = $details->parentNode;
+
+      if ($summary) {
+        $summaryText = trim($summary->textContent);
+        if ($summaryText !== '') {
+          $heading = $doc->createElement('h3');
+          // Clone child nodes to preserve any inline HTML in the summary.
+          foreach (iterator_to_array($summary->childNodes) as $child) {
+            $heading->appendChild($child->cloneNode(TRUE));
+          }
+          $parent->insertBefore($heading, $details);
+        }
+        $details->removeChild($summary);
+      }
+
+      // Move remaining child nodes to preserve inner HTML structure.
+      while ($details->firstChild) {
+        $parent->insertBefore($details->firstChild, $details);
+      }
+      $parent->removeChild($details);
+    }
+
+    // Convert <figure>/<figcaption> to img + italic caption.
+    foreach (iterator_to_array($xpath->query('//figure')) as $figure) {
+      $img = $xpath->query('.//img', $figure)->item(0);
+      $caption = $xpath->query('figcaption', $figure)->item(0);
+      if ($img) {
+        $figure->parentNode->insertBefore($img->cloneNode(TRUE), $figure);
+      }
+      if ($caption && trim($caption->textContent) !== '') {
+        $p = $doc->createElement('p');
+        $em = $doc->createElement('em');
+        // Move child nodes to preserve any inline HTML in the caption.
+        while ($caption->firstChild) {
+          $em->appendChild($caption->firstChild);
+        }
+        $p->appendChild($em);
+        $figure->parentNode->insertBefore($p, $figure);
+      }
+      $figure->parentNode->removeChild($figure);
+    }
+
+    // Replace <iframe> elements with link placeholders before HtmlConverter
+    // strips them (iframe is in remove_nodes config).
+    foreach (iterator_to_array($xpath->query('//iframe[@src]')) as $iframe) {
+      $src = $iframe->getAttribute('src');
+      if (preg_match('#^https?://#i', $src)) {
+        $p = $doc->createElement('p');
+        $a = $doc->createElement('a', 'Embedded Video');
+        $a->setAttribute('href', $src);
+        $p->appendChild($a);
+        $iframe->parentNode->insertBefore($p, $iframe);
+      }
+      $iframe->parentNode->removeChild($iframe);
+    }
+
+    // Convert Paragraphs accordion title fields to <h3> headings.
+    // Paragraphs renders accordion titles as:
+    // <div class="field--name-field-accordion-title ...">Title text</div>
+    foreach (iterator_to_array($xpath->query('//*[contains(@class, "field--name-field-accordion-title")]')) as $titleDiv) {
+      $heading = $doc->createElement('h3');
+      $heading->textContent = trim($titleDiv->textContent);
+      $titleDiv->parentNode->replaceChild($heading, $titleDiv);
+    }
+
+    // Convert Paragraphs media embed URL fields to clickable links.
+    // Paragraphs renders embed URLs as plain text in:
+    // <div class="field--name-field-embed-url ...">https://youtube.com/...</div>
+    foreach (iterator_to_array($xpath->query('//*[contains(@class, "field--name-field-embed-url")]')) as $urlDiv) {
+      $url = trim($urlDiv->textContent);
+      if (preg_match('#^https?://#i', $url)) {
+        $p = $doc->createElement('p');
+        $a = $doc->createElement('a', 'Embedded Video');
+        $a->setAttribute('href', $url);
+        $p->appendChild($a);
+        $urlDiv->parentNode->replaceChild($p, $urlDiv);
+      }
     }
 
     $body = $doc->getElementsByTagName('body')->item(0);
@@ -150,8 +239,7 @@ final class MarkdownConverter implements MarkdownConverterInterface {
   /**
    * {@inheritdoc}
    */
-  public function getMarkdown(NodeInterface $node): string {
-    // Try to load from storage first.
+  public function getStoredMarkdown(NodeInterface $node): ?string {
     $result = $this->database->select('llm_content_markdown', 'm')
       ->fields('m', ['markdown'])
       ->condition('nid', $node->id())
@@ -159,7 +247,16 @@ final class MarkdownConverter implements MarkdownConverterInterface {
       ->execute()
       ->fetchField();
 
-    if ($result !== FALSE) {
+    return $result !== FALSE ? $result : NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getMarkdown(NodeInterface $node): string {
+    $result = $this->getStoredMarkdown($node);
+
+    if ($result !== NULL) {
       return $result;
     }
 

@@ -65,6 +65,22 @@ final class LlmsTxtController extends ControllerBase {
               $body = $node->get('body')->first();
               $description = $body->summary ?: mb_substr(strip_tags($body->value ?? ''), 0, 200);
             }
+            else {
+              // Fallback: use already-stored markdown (read-only, no generation).
+              $stored = $this->markdownConverter->getStoredMarkdown($node) ?? '';
+              // Remove YAML frontmatter block.
+              $stored = preg_replace('/^---\n.*?\n---\n+/s', '', $stored) ?? $stored;
+              // Remove the H1 title line.
+              $stored = preg_replace('/^# .+\n+/', '', $stored) ?? $stored;
+              // Strip markdown formatting and collapse to single line.
+              $stored = strip_tags($stored);
+              // Remove markdown headings, bold, italic, links syntax.
+              $stored = preg_replace('/^#{1,6}\s+/m', '', $stored) ?? $stored;
+              $stored = preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '$1', $stored) ?? $stored;
+              $stored = preg_replace('/\[([^\]]+)\]\([^)]+\)/', '$1', $stored) ?? $stored;
+              $stored = preg_replace('/\s+/', ' ', $stored) ?? $stored;
+              $description = mb_substr(trim($stored), 0, 200);
+            }
             $output .= "- [{$title}]({$url})";
             if ($description) {
               $output .= ": {$description}";
