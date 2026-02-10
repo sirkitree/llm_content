@@ -10,6 +10,10 @@ Keep your normal Drupal-rendered HTML for humans and classic SEO, while also ser
 - PHP 8.3+
 - `league/html-to-markdown` ^5.0
 
+### Optional
+
+- `drupal/xmlsitemap` ^2.0 -- Adds LLM content URLs to the site's main XML sitemap
+
 ## Installation
 
 ```bash
@@ -31,15 +35,15 @@ Navigate to **Administration > Configuration > Content > LLM Content Settings** 
 
 | Path | Description | Access |
 |------|-------------|--------|
-| `/llm-md/node/{id}` | Individual node as markdown with YAML frontmatter | Node view access |
+| `/node/{id}/llm-md` | Individual node as markdown with YAML frontmatter | Node view access |
 | `/llms.txt` | Directory listing of all enabled content with links | `access content` |
 | `/llms-full.txt` | Full markdown of all enabled content concatenated | `access content` |
-| `/sitemap-llm.xml` | XML sitemap listing all markdown URLs | `access content` |
+| `/sitemap-llm.xml` | XML sitemap listing all markdown URLs (can be disabled) | `access content` |
 
 ### Example: Individual Node Markdown
 
 ```
-GET /llm-md/node/1
+GET /node/1/llm-md
 ```
 
 Returns:
@@ -73,8 +77,8 @@ Returns a directory-style listing following the [llms.txt specification](https:/
 
 ## Content
 
-- [My Article](/llm-md/node/1): Brief description...
-- [Another Page](/llm-md/node/2): Brief description...
+- [My Article](/node/1/llm-md): Brief description...
+- [Another Page](/node/2/llm-md): Brief description...
 ```
 
 ## How It Works
@@ -85,6 +89,37 @@ Returns a directory-style listing following the [llms.txt specification](https:/
 4. YAML frontmatter (title, URL, type, dates) is prepended
 5. The result is stored in a custom database table (`llm_content_markdown`) for fast retrieval
 6. Endpoints serve the stored markdown with appropriate cache tags for automatic invalidation
+
+## XML Sitemap Integration
+
+The module optionally integrates with the [XML Sitemap](https://www.drupal.org/project/xmlsitemap) contrib module. When xmlsitemap is installed, LLM content URLs can be included in the site's main XML sitemap instead of (or in addition to) the built-in `/sitemap-llm.xml`.
+
+### Setup
+
+```bash
+composer require drupal/xmlsitemap
+drush en xmlsitemap
+```
+
+Then visit **LLM Content Settings** and expand the "XML Sitemap Integration" fieldset:
+
+- **Enable XML Sitemap integration** -- Adds all LLM content URLs to the xmlsitemap link table
+- **Priority for node markdown URLs** -- 0.0 to 1.0 (default: 0.5)
+- **Change frequency** -- Hourly, daily, weekly, monthly, or yearly (default: weekly)
+- **Priority for index endpoints** -- Priority for `/llms.txt` and `/llms-full.txt` (default: 0.7)
+
+When you enable integration, all existing node markdown URLs and index endpoints are bulk-synced into the sitemap. After that, links are kept in sync automatically as nodes are created, updated, unpublished, or deleted.
+
+### Disabling the Built-in Sitemap
+
+If you prefer to use xmlsitemap exclusively, check "Disable built-in /sitemap-llm.xml" in the "Built-in Sitemap" fieldset. This returns a 403 for `/sitemap-llm.xml`. The setting takes effect after a cache rebuild.
+
+### How It Works
+
+- The module registers a custom `llm_content` link type with xmlsitemap via `hook_xmlsitemap_link_info`
+- Two subtypes are registered: `node_markdown` (individual node URLs) and `index` (llms.txt endpoints)
+- All interaction with xmlsitemap uses `\Drupal::service('xmlsitemap.link_storage')` behind runtime guards -- no hard dependency on xmlsitemap classes
+- A `RouteSubscriber` dynamically disables the built-in sitemap route when configured
 
 ## Security
 
@@ -117,16 +152,24 @@ The module uses Drupal's cache tag system for automatic invalidation:
 ```
 src/
   Controller/
-    LlmMarkdownController.php    # /llm-md/node/{id}
-    LlmsTxtController.php        # /llms.txt and /llms-full.txt
-    LlmSitemapController.php     # /sitemap-llm.xml
+    LlmMarkdownController.php        # /node/{id}/llm-md
+    LlmsTxtController.php            # /llms.txt and /llms-full.txt
+    LlmSitemapController.php         # /sitemap-llm.xml
   Service/
     MarkdownConverterInterface.php
-    MarkdownConverter.php         # HTML-to-markdown conversion + DB storage
+    MarkdownConverter.php             # HTML-to-markdown conversion + DB storage
+    XmlSitemapLinkManagerInterface.php
+    XmlSitemapLinkManager.php         # Optional xmlsitemap link CRUD
   Hook/
-    LlmContentHooks.php          # Entity lifecycle hooks (D11 OOP attributes)
+    LlmContentHooks.php              # Entity lifecycle hooks (D11 OOP attributes)
+    LlmContentXmlSitemapHooks.php    # hook_xmlsitemap_link_info
+    LlmContentRequirementsHooks.php  # Runtime requirements checks
+  Routing/
+    RouteSubscriber.php               # Disables built-in sitemap when configured
   Form/
-    LlmContentSettingsForm.php   # Admin configuration form
+    LlmContentSettingsForm.php        # Admin configuration form
+  PathProcessor/
+    LlmMarkdownPathProcessor.php      # Clean URL support for .md extension
 ```
 
 ## License

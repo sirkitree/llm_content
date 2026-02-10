@@ -103,6 +103,7 @@
         }
     },
     "require-dev": {
+        "drupal/xmlsitemap": "^2.0",
         "phpunit/phpunit": "^12.5"
     }
 }

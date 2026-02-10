@@ -47,3 +47,23 @@ function llm_content_schema(): array {
   ];
   return $schema;
 }
+
+/**
+ * Add xmlsitemap integration config defaults.
+ */
+function llm_content_update_11001(): void {
+  $config = \Drupal::configFactory()->getEditable('llm_content.settings');
+  $defaults = [
+    'xmlsitemap_integration' => FALSE,
+    'xmlsitemap_priority' => '0.5',
+    'xmlsitemap_changefreq' => 604800,
+    'xmlsitemap_index_priority' => '0.7',
+    'disable_builtin_sitemap' => FALSE,
+  ];
+  foreach ($defaults as $key => $value) {
+    if ($config->get($key) === NULL) {
+      $config->set($key, $value);
+    }
+  }
+  $config->save();
+}

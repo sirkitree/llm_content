@@ -13,3 +13,18 @@ llm_content.settings:
     auto_generate:
       type: boolean
       label: 'Auto-generate on save'
+    xmlsitemap_integration:
+      type: boolean
+      label: 'Enable XML Sitemap integration'
+    xmlsitemap_priority:
+      type: string
+      label: 'XML Sitemap priority for node markdown URLs'
+    xmlsitemap_changefreq:
+      type: integer
+      label: 'XML Sitemap change frequency in seconds'
+    xmlsitemap_index_priority:
+      type: string
+      label: 'XML Sitemap priority for index endpoints'
+    disable_builtin_sitemap:
+      type: boolean
+      label: 'Disable built-in /sitemap-llm.xml'

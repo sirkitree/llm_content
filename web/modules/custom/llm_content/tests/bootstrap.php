@@ -15,3 +15,5 @@ $autoloader->addPsr4('Drupal\\Tests\\llm_content\\', dirname(__DIR__) . '/tests/
 // Register core module namespaces needed by unit tests.
 $webRoot = dirname(__DIR__, 4);
 $autoloader->addPsr4('Drupal\\path_alias\\', $webRoot . '/core/modules/path_alias/src');
+$autoloader->addPsr4('Drupal\\node\\', $webRoot . '/core/modules/node/src');
+$autoloader->addPsr4('Drupal\\user\\', $webRoot . '/core/modules/user/src');
