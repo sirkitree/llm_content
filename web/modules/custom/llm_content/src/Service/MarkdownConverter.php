@@ -65,7 +65,7 @@ final class MarkdownConverter implements MarkdownConverterInterface {
         $text = $matches[1];
         $url = $matches[2];
         // Allow relative URLs, http(s), mailto, and tel schemes.
-        if (preg_match('#^(https?://|mailto:|tel:|/|#)#i', $url)) {
+        if (preg_match('#^(https?://|mailto:|tel:|/|\#)#i', $url)) {
           return "[{$text}]({$url})";
         }
         return "[{$text}](#)";
@@ -73,7 +73,9 @@ final class MarkdownConverter implements MarkdownConverterInterface {
       $markdown
     ) ?? $markdown;
 
-    // Collapse excessive newlines from nested paragraph divs.
+    // Collapse whitespace-only lines and excessive newlines from nested
+    // paragraph divs (e.g. lines with just spaces or non-breaking spaces).
+    $markdown = preg_replace("/\n[ \t]*\n[ \t]*\n/", "\n\n", $markdown) ?? $markdown;
     $markdown = preg_replace("/\n{3,}/", "\n\n", $markdown) ?? $markdown;
 
     // Build frontmatter.
@@ -185,6 +187,29 @@ final class MarkdownConverter implements MarkdownConverterInterface {
         $iframe->parentNode->insertBefore($p, $iframe);
       }
       $iframe->parentNode->removeChild($iframe);
+    }
+
+    // Convert Paragraphs accordion title fields to <h3> headings.
+    // Paragraphs renders accordion titles as:
+    // <div class="field--name-field-accordion-title ...">Title text</div>
+    foreach (iterator_to_array($xpath->query('//*[contains(@class, "field--name-field-accordion-title")]')) as $titleDiv) {
+      $heading = $doc->createElement('h3');
+      $heading->textContent = trim($titleDiv->textContent);
+      $titleDiv->parentNode->replaceChild($heading, $titleDiv);
+    }
+
+    // Convert Paragraphs media embed URL fields to clickable links.
+    // Paragraphs renders embed URLs as plain text in:
+    // <div class="field--name-field-embed-url ...">https://youtube.com/...</div>
+    foreach (iterator_to_array($xpath->query('//*[contains(@class, "field--name-field-embed-url")]')) as $urlDiv) {
+      $url = trim($urlDiv->textContent);
+      if (preg_match('#^https?://#i', $url)) {
+        $p = $doc->createElement('p');
+        $a = $doc->createElement('a', '[Embedded Video]');
+        $a->setAttribute('href', $url);
+        $p->appendChild($a);
+        $urlDiv->parentNode->replaceChild($p, $urlDiv);
+      }
     }
 
     $body = $doc->getElementsByTagName('body')->item(0);

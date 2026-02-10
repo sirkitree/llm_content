@@ -157,6 +157,33 @@ class MarkdownConverterTest extends TestCase {
   }
 
   /**
+   * Tests Paragraphs accordion title field div is converted to h3.
+   */
+  public function testParagraphsAccordionTitleField(): void {
+    $html = '<div class="paragraph paragraph--type--accordion">'
+      . '<div class="field field--name-field-accordion-title field--type-string field--label-hidden field__item">FAQ Question</div>'
+      . '<div class="field field--name-field-accordion-body field--type-text-long field--label-hidden field__item"><p>The answer.</p></div>'
+      . '</div>';
+    $result = $this->strip($html);
+
+    $this->assertStringContainsString('<h3>FAQ Question</h3>', $result);
+    $this->assertStringContainsString('The answer.', $result);
+  }
+
+  /**
+   * Tests Paragraphs media embed URL field is converted to a link.
+   */
+  public function testParagraphsMediaEmbedUrlField(): void {
+    $html = '<div class="paragraph paragraph--type--media-embed">'
+      . '<div class="field field--name-field-embed-url field--type-string field--label-hidden field__item">https://www.youtube.com/embed/xyz123</div>'
+      . '</div>';
+    $result = $this->strip($html);
+
+    $this->assertStringContainsString('href="https://www.youtube.com/embed/xyz123"', $result);
+    $this->assertStringContainsString('[Embedded Video]', $result);
+  }
+
+  /**
    * Tests combination of paragraph patterns in a single page.
    */
   public function testCombinedParagraphPatterns(): void {

@@ -68,8 +68,17 @@ final class LlmsTxtController extends ControllerBase {
             else {
               // Fallback: use stored markdown for content types without body.
               $stored = $this->markdownConverter->getMarkdown($node);
+              // Remove YAML frontmatter block.
               $stored = preg_replace('/^---\n.*?\n---\n+/s', '', $stored) ?? $stored;
+              // Remove the H1 title line.
               $stored = preg_replace('/^# .+\n+/', '', $stored) ?? $stored;
+              // Strip markdown formatting and collapse to single line.
+              $stored = strip_tags($stored);
+              // Remove markdown headings, bold, italic, links syntax.
+              $stored = preg_replace('/^#{1,6}\s+/m', '', $stored) ?? $stored;
+              $stored = preg_replace('/\*{1,2}([^*]+)\*{1,2}/', '$1', $stored) ?? $stored;
+              $stored = preg_replace('/\[([^\]]+)\]\([^)]+\)/', '$1', $stored) ?? $stored;
+              $stored = preg_replace('/\s+/', ' ', $stored) ?? $stored;
               $description = mb_substr(trim($stored), 0, 200);
             }
             $output .= "- [{$title}]({$url})";
