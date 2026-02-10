@@ -53,7 +53,7 @@ final class LlmMarkdownPathProcessor implements InboundPathProcessorInterface, O
    * {@inheritdoc}
    */
   public function processOutbound($path, &$options = [], ?Request $request = NULL, ?BubbleableMetadata $bubbleable_metadata = NULL): string {
-    if (!str_ends_with($path, '/llm-md') || !preg_match('#^/node/\d+/llm-md$#', $path)) {
+    if (!preg_match('#^/node/\d+/llm-md$#', $path)) {
       return $path;
     }
 

@@ -99,7 +99,7 @@ final class LlmsTxtController extends ControllerBase {
     ]);
 
     $cacheMetadata = new CacheableMetadata();
-    $cacheMetadata->addCacheTags(['llm_content:list', 'node_list']);
+    $cacheMetadata->addCacheTags(['llm_content:list', 'node_list', 'path_alias_list']);
     $cacheMetadata->addCacheContexts(['user.permissions']);
     $response->addCacheableDependency($cacheMetadata);
     $response->addCacheableDependency($config);
