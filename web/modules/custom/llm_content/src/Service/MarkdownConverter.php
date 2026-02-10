@@ -73,6 +73,9 @@ final class MarkdownConverter implements MarkdownConverterInterface {
       $markdown
     ) ?? $markdown;
 
+    // Collapse excessive newlines from nested paragraph divs.
+    $markdown = preg_replace("/\n{3,}/", "\n\n", $markdown) ?? $markdown;
+
     // Build frontmatter.
     $alias = $this->aliasManager->getAliasByPath('/node/' . $node->id());
     $title = $node->label() ?? '';
@@ -132,6 +135,53 @@ final class MarkdownConverter implements MarkdownConverterInterface {
     // Remove nav elements.
     foreach ($xpath->query('//nav') as $node) {
       $node->parentNode->removeChild($node);
+    }
+
+    // Convert <details>/<summary> (accordion paragraphs) to heading + content.
+    foreach ($xpath->query('//details') as $details) {
+      $summary = $xpath->query('summary', $details)->item(0);
+      $heading = $doc->createElement('h3');
+      $heading->textContent = $summary ? trim($summary->textContent) : '';
+      if ($summary) {
+        $details->removeChild($summary);
+      }
+      // Wrap remaining content in a paragraph.
+      $p = $doc->createElement('p');
+      $p->textContent = trim($details->textContent);
+      $details->parentNode->insertBefore($heading, $details);
+      $details->parentNode->insertBefore($p, $details);
+      $details->parentNode->removeChild($details);
+    }
+
+    // Convert <figure>/<figcaption> to img + italic caption.
+    foreach ($xpath->query('//figure') as $figure) {
+      $img = $xpath->query('.//img', $figure)->item(0);
+      $caption = $xpath->query('figcaption', $figure)->item(0);
+      if ($img) {
+        $figure->parentNode->insertBefore($img->cloneNode(TRUE), $figure);
+      }
+      if ($caption && trim($caption->textContent) !== '') {
+        $p = $doc->createElement('p');
+        $em = $doc->createElement('em');
+        $em->textContent = trim($caption->textContent);
+        $p->appendChild($em);
+        $figure->parentNode->insertBefore($p, $figure);
+      }
+      $figure->parentNode->removeChild($figure);
+    }
+
+    // Replace <iframe> elements with link placeholders before HtmlConverter
+    // strips them (iframe is in remove_nodes config).
+    foreach ($xpath->query('//iframe[@src]') as $iframe) {
+      $src = $iframe->getAttribute('src');
+      if (preg_match('#^https?://#i', $src)) {
+        $p = $doc->createElement('p');
+        $a = $doc->createElement('a', '[Embedded Video]');
+        $a->setAttribute('href', $src);
+        $p->appendChild($a);
+        $iframe->parentNode->insertBefore($p, $iframe);
+      }
+      $iframe->parentNode->removeChild($iframe);
     }
 
     $body = $doc->getElementsByTagName('body')->item(0);

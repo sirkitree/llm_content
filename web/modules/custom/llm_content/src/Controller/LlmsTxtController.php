@@ -65,6 +65,13 @@ final class LlmsTxtController extends ControllerBase {
               $body = $node->get('body')->first();
               $description = $body->summary ?: mb_substr(strip_tags($body->value ?? ''), 0, 200);
             }
+            else {
+              // Fallback: use stored markdown for content types without body.
+              $stored = $this->markdownConverter->getMarkdown($node);
+              $stored = preg_replace('/^---\n.*?\n---\n+/s', '', $stored) ?? $stored;
+              $stored = preg_replace('/^# .+\n+/', '', $stored) ?? $stored;
+              $description = mb_substr(trim($stored), 0, 200);
+            }
             $output .= "- [{$title}]({$url})";
             if ($description) {
               $output .= ": {$description}";
