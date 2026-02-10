@@ -36,6 +36,7 @@ class MarkdownConverterTest extends TestCase {
     $this->converter = $reflection->newInstanceWithoutConstructor();
 
     $this->stripMethod = $reflection->getMethod('stripDrupalChrome');
+    $this->stripMethod->setAccessible(TRUE);
   }
 
   /**
@@ -102,7 +103,7 @@ class MarkdownConverterTest extends TestCase {
     $result = $this->strip($html);
 
     $this->assertStringContainsString('href="https://www.youtube.com/embed/dQw4w9WgXcQ"', $result);
-    $this->assertStringContainsString('[Embedded Video]', $result);
+    $this->assertStringContainsString('Embedded Video', $result);
     $this->assertStringNotContainsString('<iframe', $result);
   }
 
@@ -115,7 +116,7 @@ class MarkdownConverterTest extends TestCase {
 
     $this->assertStringNotContainsString('javascript:', $result);
     $this->assertStringNotContainsString('<iframe', $result);
-    $this->assertStringNotContainsString('[Embedded Video]', $result);
+    $this->assertStringNotContainsString('Embedded Video', $result);
   }
 
   /**
@@ -142,6 +143,24 @@ class MarkdownConverterTest extends TestCase {
     $result = $this->strip($html);
 
     $this->assertStringContainsString('Hello world', $result);
+  }
+
+  /**
+   * Tests details with empty or missing summary produces no empty heading.
+   */
+  public function testDetailsWithEmptyOrMissingSummary(): void {
+    // Empty summary text.
+    $html = '<details><summary>   </summary><p>Body content.</p></details>';
+    $result = $this->strip($html);
+    $this->assertStringNotContainsString('<h3>', $result);
+    $this->assertStringContainsString('Body content.', $result);
+
+    // No summary element at all.
+    $html2 = '<details><p>Just body content.</p></details>';
+    $result2 = $this->strip($html2);
+    $this->assertStringNotContainsString('<h3>', $result2);
+    $this->assertStringContainsString('Just body content.', $result2);
+    $this->assertStringNotContainsString('<details>', $result2);
   }
 
   /**
@@ -180,7 +199,7 @@ class MarkdownConverterTest extends TestCase {
     $result = $this->strip($html);
 
     $this->assertStringContainsString('href="https://www.youtube.com/embed/xyz123"', $result);
-    $this->assertStringContainsString('[Embedded Video]', $result);
+    $this->assertStringContainsString('Embedded Video', $result);
   }
 
   /**
@@ -199,7 +218,7 @@ class MarkdownConverterTest extends TestCase {
     $this->assertStringContainsString('<img src="/photo.jpg"', $result);
     $this->assertStringContainsString('<em>A caption</em>', $result);
     $this->assertStringContainsString('https://youtube.com/embed/abc123', $result);
-    $this->assertStringContainsString('[Embedded Video]', $result);
+    $this->assertStringContainsString('Embedded Video', $result);
   }
 
 }

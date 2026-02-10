@@ -66,8 +66,8 @@ final class LlmsTxtController extends ControllerBase {
               $description = $body->summary ?: mb_substr(strip_tags($body->value ?? ''), 0, 200);
             }
             else {
-              // Fallback: use stored markdown for content types without body.
-              $stored = $this->markdownConverter->getMarkdown($node);
+              // Fallback: use already-stored markdown (read-only, no generation).
+              $stored = $this->markdownConverter->getStoredMarkdown($node) ?? '';
               // Remove YAML frontmatter block.
               $stored = preg_replace('/^---\n.*?\n---\n+/s', '', $stored) ?? $stored;
               // Remove the H1 title line.

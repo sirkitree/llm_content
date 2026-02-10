@@ -144,14 +144,22 @@ final class MarkdownConverter implements MarkdownConverterInterface {
     // Convert <details>/<summary> (accordion paragraphs) to heading + content.
     foreach (iterator_to_array($xpath->query('//details')) as $details) {
       $summary = $xpath->query('summary', $details)->item(0);
-      $heading = $doc->createElement('h3');
-      $heading->textContent = $summary ? trim($summary->textContent) : '';
+      $parent = $details->parentNode;
+
       if ($summary) {
+        $summaryText = trim($summary->textContent);
+        if ($summaryText !== '') {
+          $heading = $doc->createElement('h3');
+          // Clone child nodes to preserve any inline HTML in the summary.
+          foreach (iterator_to_array($summary->childNodes) as $child) {
+            $heading->appendChild($child->cloneNode(TRUE));
+          }
+          $parent->insertBefore($heading, $details);
+        }
         $details->removeChild($summary);
       }
+
       // Move remaining child nodes to preserve inner HTML structure.
-      $parent = $details->parentNode;
-      $parent->insertBefore($heading, $details);
       while ($details->firstChild) {
         $parent->insertBefore($details->firstChild, $details);
       }
@@ -168,7 +176,10 @@ final class MarkdownConverter implements MarkdownConverterInterface {
       if ($caption && trim($caption->textContent) !== '') {
         $p = $doc->createElement('p');
         $em = $doc->createElement('em');
-        $em->textContent = trim($caption->textContent);
+        // Move child nodes to preserve any inline HTML in the caption.
+        while ($caption->firstChild) {
+          $em->appendChild($caption->firstChild);
+        }
         $p->appendChild($em);
         $figure->parentNode->insertBefore($p, $figure);
       }
@@ -181,7 +192,7 @@ final class MarkdownConverter implements MarkdownConverterInterface {
       $src = $iframe->getAttribute('src');
       if (preg_match('#^https?://#i', $src)) {
         $p = $doc->createElement('p');
-        $a = $doc->createElement('a', '[Embedded Video]');
+        $a = $doc->createElement('a', 'Embedded Video');
         $a->setAttribute('href', $src);
         $p->appendChild($a);
         $iframe->parentNode->insertBefore($p, $iframe);
@@ -205,7 +216,7 @@ final class MarkdownConverter implements MarkdownConverterInterface {
       $url = trim($urlDiv->textContent);
       if (preg_match('#^https?://#i', $url)) {
         $p = $doc->createElement('p');
-        $a = $doc->createElement('a', '[Embedded Video]');
+        $a = $doc->createElement('a', 'Embedded Video');
         $a->setAttribute('href', $url);
         $p->appendChild($a);
         $urlDiv->parentNode->replaceChild($p, $urlDiv);
@@ -228,8 +239,7 @@ final class MarkdownConverter implements MarkdownConverterInterface {
   /**
    * {@inheritdoc}
    */
-  public function getMarkdown(NodeInterface $node): string {
-    // Try to load from storage first.
+  public function getStoredMarkdown(NodeInterface $node): ?string {
     $result = $this->database->select('llm_content_markdown', 'm')
       ->fields('m', ['markdown'])
       ->condition('nid', $node->id())
@@ -237,7 +247,16 @@ final class MarkdownConverter implements MarkdownConverterInterface {
       ->execute()
       ->fetchField();
 
-    if ($result !== FALSE) {
+    return $result !== FALSE ? $result : NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getMarkdown(NodeInterface $node): string {
+    $result = $this->getStoredMarkdown($node);
+
+    if ($result !== NULL) {
       return $result;
     }
 
