@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\llm_content\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\DateFormatterInterface;
@@ -30,6 +31,7 @@ final class MarkdownConverter implements MarkdownConverterInterface {
     protected AliasManagerInterface $aliasManager,
     protected Connection $database,
     protected DateFormatterInterface $dateFormatter,
+    protected TimeInterface $time,
   ) {
     $this->htmlConverter = new HtmlConverter([
       'strip_tags' => TRUE,
@@ -56,13 +58,29 @@ final class MarkdownConverter implements MarkdownConverterInterface {
     // Convert HTML to markdown.
     $markdown = $this->htmlConverter->convert($html);
 
-    // Clean up: strip dangerous URI schemes from links.
-    $markdown = preg_replace('/\[([^\]]*)\]\((javascript|vbscript|data):[^)]*\)/i', '[$1](#)', $markdown) ?? $markdown;
+    // Clean up: only allow safe URI schemes in links (allowlist approach).
+    $markdown = preg_replace_callback(
+      '/\[([^\]]*)\]\(([^)]+)\)/i',
+      static function (array $matches): string {
+        $text = $matches[1];
+        $url = $matches[2];
+        // Allow relative URLs, http(s), mailto, and tel schemes.
+        if (preg_match('#^(https?://|mailto:|tel:|/|#)#i', $url)) {
+          return "[{$text}]({$url})";
+        }
+        return "[{$text}](#)";
+      },
+      $markdown
+    ) ?? $markdown;
 
     // Build frontmatter.
     $alias = $this->aliasManager->getAliasByPath('/node/' . $node->id());
+    $title = $node->label() ?? '';
+    // Sanitize title for YAML safety: escape quotes, strip control characters.
+    $title = preg_replace('/[\x00-\x1f\x7f]/', '', $title) ?? $title;
+    $title = str_replace(['\\', '"'], ['\\\\', '\\"'], $title);
     $frontmatter = "---\n";
-    $frontmatter .= 'title: "' . str_replace('"', '\\"', $node->label() ?? '') . "\"\n";
+    $frontmatter .= 'title: "' . $title . "\"\n";
     $frontmatter .= 'url: ' . $alias . "\n";
     $frontmatter .= 'type: ' . $node->bundle() . "\n";
     $frontmatter .= 'date: ' . $this->dateFormatter->format($node->getCreatedTime(), 'custom', 'Y-m-d') . "\n";
@@ -81,7 +99,7 @@ final class MarkdownConverter implements MarkdownConverterInterface {
       ])
       ->fields([
         'markdown' => $fullMarkdown,
-        'generated' => \Drupal::time()->getRequestTime(),
+        'generated' => $this->time->getRequestTime(),
       ])
       ->execute();
 
@@ -152,10 +170,49 @@ final class MarkdownConverter implements MarkdownConverterInterface {
   /**
    * {@inheritdoc}
    */
-  public function deleteMarkdown(int $nid): void {
-    $this->database->delete('llm_content_markdown')
-      ->condition('nid', $nid)
-      ->execute();
+  public function deleteMarkdown(int $nid, ?string $langcode = NULL): void {
+    $query = $this->database->delete('llm_content_markdown')
+      ->condition('nid', $nid);
+    if ($langcode !== NULL) {
+      $query->condition('langcode', $langcode);
+    }
+    $query->execute();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function generateFullText(): string {
+    $config = $this->configFactory->get('llm_content.settings');
+    $enabledTypes = $config->get('enabled_content_types') ?? [];
+    $siteConfig = $this->configFactory->get('system.site');
+    $siteName = $siteConfig->get('name') ?? 'Site';
+    $siteSlogan = $siteConfig->get('slogan') ?? '';
+
+    $output = "# {$siteName}\n\n";
+    if ($siteSlogan) {
+      $output .= "> {$siteSlogan}\n\n";
+    }
+
+    if (empty($enabledTypes)) {
+      return $output;
+    }
+
+    // Join with node_field_data for access control and type filtering.
+    $query = $this->database->select('llm_content_markdown', 'm');
+    $query->innerJoin('node_field_data', 'n', 'm.nid = n.nid AND m.langcode = n.langcode');
+    $query->fields('m', ['markdown']);
+    $query->condition('n.status', 1);
+    $query->condition('n.type', $enabledTypes, 'IN');
+    $query->orderBy('m.nid', 'ASC');
+    $query->range(0, 500);
+    $results = $query->execute()->fetchCol();
+
+    foreach ($results as $markdown) {
+      $output .= $markdown . "\n\n---\n\n";
+    }
+
+    return $output;
   }
 
 }

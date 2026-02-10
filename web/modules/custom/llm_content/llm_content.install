@@ -47,14 +47,3 @@ function llm_content_schema(): array {
   ];
   return $schema;
 }
-
-/**
- * Implements hook_uninstall().
- */
-function llm_content_uninstall(): void {
-  // Clean up the pre-generated llms-full.txt file.
-  $uri = 'public://llm_content';
-  if (is_dir($uri)) {
-    \Drupal::service('file_system')->deleteRecursive($uri);
-  }
-}

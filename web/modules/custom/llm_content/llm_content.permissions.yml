@@ -1,3 +1,4 @@
 administer llm content:
   title: 'Administer LLM Content settings'
   description: 'Configure which content types expose markdown views.'
+  restrict access: true

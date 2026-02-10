@@ -17,15 +17,17 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class LlmMarkdownController extends ControllerBase {
 
-  protected MarkdownConverterInterface $markdownConverter;
+  public function __construct(
+    protected MarkdownConverterInterface $markdownConverter,
+  ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    $instance = new static();
-    $instance->markdownConverter = $container->get(MarkdownConverterInterface::class);
-    return $instance;
+    return new static(
+      $container->get(MarkdownConverterInterface::class),
+    );
   }
 
   /**

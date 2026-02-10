@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\llm_content\Form;
 
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -20,11 +21,17 @@ final class LlmContentSettingsForm extends ConfigFormBase {
   protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
+   * The entity display repository.
+   */
+  protected EntityDisplayRepositoryInterface $entityDisplayRepository;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
     $instance = parent::create($container);
     $instance->entityTypeManager = $container->get('entity_type.manager');
+    $instance->entityDisplayRepository = $container->get('entity_display.repository');
     return $instance;
   }
 
@@ -63,15 +70,14 @@ final class LlmContentSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('enabled_content_types') ?? [],
     ];
 
+    // Load view modes dynamically from entity display system.
+    $viewModes = $this->entityDisplayRepository->getViewModeOptions('node');
+
     $form['view_mode'] = [
       '#type' => 'select',
       '#title' => $this->t('View mode'),
       '#description' => $this->t('The view mode to use when rendering content for markdown conversion.'),
-      '#options' => [
-        'full' => $this->t('Full'),
-        'teaser' => $this->t('Teaser'),
-        'default' => $this->t('Default'),
-      ],
+      '#options' => $viewModes,
       '#default_value' => $config->get('view_mode') ?? 'full',
     ];
 

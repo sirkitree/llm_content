@@ -7,24 +7,25 @@ namespace Drupal\llm_content\Controller;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponse;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\File\FileSystemInterface;
+use Drupal\llm_content\Service\MarkdownConverterInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Controller for llms.txt and llms-full.txt endpoints.
  */
 final class LlmsTxtController extends ControllerBase {
 
-  protected FileSystemInterface $fileSystem;
+  public function __construct(
+    protected MarkdownConverterInterface $markdownConverter,
+  ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    $instance = new static();
-    $instance->fileSystem = $container->get('file_system');
-    return $instance;
+    return new static(
+      $container->get(MarkdownConverterInterface::class),
+    );
   }
 
   /**
@@ -81,7 +82,7 @@ final class LlmsTxtController extends ControllerBase {
     ]);
 
     $cacheMetadata = new CacheableMetadata();
-    $cacheMetadata->addCacheTags(['llm_content:list']);
+    $cacheMetadata->addCacheTags(['llm_content:list', 'node_list']);
     $cacheMetadata->addCacheContexts(['user.permissions']);
     $response->addCacheableDependency($cacheMetadata);
     $response->addCacheableDependency($config);
@@ -91,62 +92,20 @@ final class LlmsTxtController extends ControllerBase {
   }
 
   /**
-   * Serves the pre-generated llms-full.txt file.
+   * Generates the llms-full.txt content dynamically.
    */
-  public function llmsFullTxt(): Response {
-    $filePath = 'public://llm_content/llms-full.txt';
-    $realPath = $this->fileSystem->realpath($filePath);
-
-    if ($realPath && file_exists($realPath)) {
-      $content = file_get_contents($realPath);
-      $response = new CacheableResponse($content ?: '', 200, [
-        'Content-Type' => 'text/plain; charset=utf-8',
-        'X-Content-Type-Options' => 'nosniff',
-      ]);
-
-      $cacheMetadata = new CacheableMetadata();
-      $cacheMetadata->addCacheTags(['llm_content:list']);
-      $response->addCacheableDependency($cacheMetadata);
-
-      return $response;
-    }
-
-    // Generate on the fly if file doesn't exist yet (fallback).
-    return $this->generateLlmsFullTxt();
-  }
-
-  /**
-   * Generates the llms-full.txt content as a fallback.
-   */
-  protected function generateLlmsFullTxt(): CacheableResponse {
+  public function llmsFullTxt(): CacheableResponse {
     $config = $this->config('llm_content.settings');
-    $siteConfig = $this->config('system.site');
-    $siteName = $siteConfig->get('name') ?? 'Site';
-    $siteSlogan = $siteConfig->get('slogan') ?? '';
+    $content = $this->markdownConverter->generateFullText();
 
-    $output = "# {$siteName}\n\n";
-    if ($siteSlogan) {
-      $output .= "> {$siteSlogan}\n\n";
-    }
-
-    // Read from stored markdown in DB, limited to 500 nodes.
-    $results = \Drupal::database()->select('llm_content_markdown', 'm')
-      ->fields('m', ['markdown'])
-      ->range(0, 500)
-      ->execute()
-      ->fetchCol();
-
-    foreach ($results as $markdown) {
-      $output .= $markdown . "\n\n---\n\n";
-    }
-
-    $response = new CacheableResponse($output, 200, [
+    $response = new CacheableResponse($content, 200, [
       'Content-Type' => 'text/plain; charset=utf-8',
       'X-Content-Type-Options' => 'nosniff',
     ]);
 
     $cacheMetadata = new CacheableMetadata();
-    $cacheMetadata->addCacheTags(['llm_content:list']);
+    $cacheMetadata->addCacheTags(['llm_content:list', 'node_list']);
+    $cacheMetadata->addCacheContexts(['user.permissions']);
     $response->addCacheableDependency($cacheMetadata);
     $response->addCacheableDependency($config);
 

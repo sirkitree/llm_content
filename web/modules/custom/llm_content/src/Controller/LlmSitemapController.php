@@ -7,7 +7,7 @@ namespace Drupal\llm_content\Controller;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponse;
 use Drupal\Core\Controller\ControllerBase;
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\Core\Url;
 
 /**
  * Controller for the LLM sitemap XML endpoint.
@@ -17,10 +17,12 @@ final class LlmSitemapController extends ControllerBase {
   /**
    * Generates the LLM sitemap XML.
    */
-  public function generate(Request $request): CacheableResponse {
+  public function generate(): CacheableResponse {
     $config = $this->config('llm_content.settings');
     $enabledTypes = $config->get('enabled_content_types') ?? [];
-    $baseUrl = $request->getSchemeAndHttpHost();
+    // Use Drupal's URL generator for safe base URL resolution.
+    $baseUrl = Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString();
+    $baseUrl = rtrim($baseUrl, '/');
 
     // Use XMLWriter for safe XML generation.
     $xml = new \XMLWriter();
@@ -92,7 +94,7 @@ final class LlmSitemapController extends ControllerBase {
     ]);
 
     $cacheMetadata = new CacheableMetadata();
-    $cacheMetadata->addCacheTags(['llm_content:list']);
+    $cacheMetadata->addCacheTags(['llm_content:list', 'node_list']);
     $cacheMetadata->addCacheContexts(['user.permissions']);
     $response->addCacheableDependency($cacheMetadata);
     $response->addCacheableDependency($config);

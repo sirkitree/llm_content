@@ -38,7 +38,17 @@ interface MarkdownConverterInterface {
    *
    * @param int $nid
    *   The node ID.
+   * @param string|null $langcode
+   *   The language code to delete. If NULL, deletes all languages.
    */
-  public function deleteMarkdown(int $nid): void;
+  public function deleteMarkdown(int $nid, ?string $langcode = NULL): void;
+
+  /**
+   * Generates the full-text content for all enabled nodes.
+   *
+   * @return string
+   *   The aggregated markdown content.
+   */
+  public function generateFullText(): string;
 
 }
