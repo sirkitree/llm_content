@@ -1,3 +1,8 @@
 enabled_content_types: []
 view_mode: full
 auto_generate: true
+xmlsitemap_integration: false
+xmlsitemap_priority: '0.5'
+xmlsitemap_changefreq: 604800
+xmlsitemap_index_priority: '0.7'
+disable_builtin_sitemap: false

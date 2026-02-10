@@ -6,6 +6,14 @@ services:
   Drupal\llm_content\Service\MarkdownConverterInterface:
     class: Drupal\llm_content\Service\MarkdownConverter
 
+  Drupal\llm_content\Service\XmlSitemapLinkManagerInterface:
+    class: Drupal\llm_content\Service\XmlSitemapLinkManager
+
+  llm_content.route_subscriber:
+    class: Drupal\llm_content\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }
+
   llm_content.path_processor:
     class: Drupal\llm_content\PathProcessor\LlmMarkdownPathProcessor
     arguments: ['@path_alias.manager']

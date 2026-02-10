@@ -9,6 +9,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\llm_content\Service\MarkdownConverterInterface;
+use Drupal\llm_content\Service\XmlSitemapLinkManagerInterface;
 use Drupal\node\NodeInterface;
 
 /**
@@ -19,6 +20,7 @@ final class LlmContentHooks {
   public function __construct(
     protected MarkdownConverterInterface $markdownConverter,
     protected ConfigFactoryInterface $configFactory,
+    protected XmlSitemapLinkManagerInterface $xmlSitemapLinkManager,
   ) {}
 
   /**
@@ -52,6 +54,9 @@ final class LlmContentHooks {
       return;
     }
     $this->markdownConverter->deleteMarkdown((int) $entity->id());
+    if ($this->xmlSitemapLinkManager->isEnabled()) {
+      $this->xmlSitemapLinkManager->deleteNodeLink((int) $entity->id());
+    }
     Cache::invalidateTags(['llm_content:list']);
   }
 
@@ -72,10 +77,16 @@ final class LlmContentHooks {
 
     if ($node->isPublished()) {
       $this->markdownConverter->convert($node);
+      if ($this->xmlSitemapLinkManager->isEnabled()) {
+        $this->xmlSitemapLinkManager->saveNodeLink($node);
+      }
     }
     else {
       // Remove markdown for this specific translation only.
       $this->markdownConverter->deleteMarkdown((int) $node->id(), $node->language()->getId());
+      if ($this->xmlSitemapLinkManager->isEnabled()) {
+        $this->xmlSitemapLinkManager->deleteNodeLink((int) $node->id());
+      }
     }
 
     Cache::invalidateTags(['llm_content:list']);
