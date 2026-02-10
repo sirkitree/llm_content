@@ -1,0 +1,41 @@
+llm_content.markdown_view:
+  path: '/llm-md/node/{node}'
+  defaults:
+    _controller: '\Drupal\llm_content\Controller\LlmMarkdownController::view'
+    _title: 'Markdown View'
+  requirements:
+    _entity_access: 'node.view'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+llm_content.sitemap_llm:
+  path: '/sitemap-llm.xml'
+  defaults:
+    _controller: '\Drupal\llm_content\Controller\LlmSitemapController::generate'
+  requirements:
+    _permission: 'access content'
+
+llm_content.llms_txt:
+  path: '/llms.txt'
+  defaults:
+    _controller: '\Drupal\llm_content\Controller\LlmsTxtController::llmsTxt'
+  requirements:
+    _permission: 'access content'
+
+llm_content.llms_full_txt:
+  path: '/llms-full.txt'
+  defaults:
+    _controller: '\Drupal\llm_content\Controller\LlmsTxtController::llmsFullTxt'
+  requirements:
+    _permission: 'access content'
+
+llm_content.settings:
+  path: '/admin/config/content/llm-content'
+  defaults:
+    _form: '\Drupal\llm_content\Form\LlmContentSettingsForm'
+    _title: 'LLM Content Settings'
+  requirements:
+    _permission: 'administer llm content'

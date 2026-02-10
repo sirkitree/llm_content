@@ -1,0 +1,7 @@
+services:
+  _defaults:
+    autoconfigure: true
+    autowire: true
+
+  Drupal\llm_content\Service\MarkdownConverterInterface:
+    class: Drupal\llm_content\Service\MarkdownConverter

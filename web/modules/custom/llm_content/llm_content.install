@@ -1,0 +1,60 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the LLM Content module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function llm_content_schema(): array {
+  $schema['llm_content_markdown'] = [
+    'description' => 'Stores generated markdown for nodes.',
+    'fields' => [
+      'nid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The node ID.',
+      ],
+      'langcode' => [
+        'type' => 'varchar',
+        'length' => 12,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The language code.',
+      ],
+      'markdown' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'The generated markdown.',
+      ],
+      'generated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of generation.',
+      ],
+    ],
+    'primary key' => ['nid', 'langcode'],
+    'indexes' => [
+      'generated' => ['generated'],
+    ],
+  ];
+  return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function llm_content_uninstall(): void {
+  // Clean up the pre-generated llms-full.txt file.
+  $uri = 'public://llm_content';
+  if (is_dir($uri)) {
+    \Drupal::service('file_system')->deleteRecursive($uri);
+  }
+}

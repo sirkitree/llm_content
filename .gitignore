@@ -1,0 +1,35 @@
+# Composer dependencies
+/vendor/
+
+# Drupal core and contrib (managed by composer)
+/web/core/
+/web/modules/contrib/
+/web/themes/contrib/
+/web/profiles/contrib/
+/web/libraries/
+
+# Auto-generated files
+/web/sites/default/files/
+/web/sites/default/settings.php
+/web/sites/default/settings.local.php
+/web/sites/default/services.yml
+
+# DDEV
+/.ddev/.homeadditions/
+/.ddev/.sso-nfs-mount-config/
+/.ddev/commands/
+/.ddev/db_snapshots/
+/.ddev/sequelpro.spf
+/.ddev/.gitignore
+/.ddev/import-db/
+/.ddev/providers/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

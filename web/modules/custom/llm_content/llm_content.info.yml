@@ -1,0 +1,9 @@
+name: LLM Content
+type: module
+description: 'Generates markdown views of content for LLM crawlers and AI agents.'
+package: Custom
+core_version_requirement: ^11.1
+dependencies:
+  - drupal:node
+  - drupal:path_alias
+configure: llm_content.settings

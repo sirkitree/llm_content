@@ -1,0 +1,5 @@
+llm_content.settings:
+  title: 'LLM Content'
+  description: 'Configure markdown views for LLM crawlers.'
+  route_name: llm_content.settings
+  parent: system.admin_config_content

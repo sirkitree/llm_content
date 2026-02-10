@@ -1,0 +1,15 @@
+llm_content.settings:
+  type: config_object
+  label: 'LLM Content settings'
+  mapping:
+    enabled_content_types:
+      type: sequence
+      label: 'Enabled content types'
+      sequence:
+        type: string
+    view_mode:
+      type: string
+      label: 'View mode'
+    auto_generate:
+      type: boolean
+      label: 'Auto-generate on save'
