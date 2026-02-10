@@ -118,43 +118,46 @@ final class MarkdownConverter implements MarkdownConverterInterface {
     $xpath = new \DOMXPath($doc);
 
     // Remove elements by ID (comments wrapper).
-    foreach ($xpath->query('//*[@id="comments"]') as $node) {
+    // Use iterator_to_array() on all XPath loops that mutate the DOM,
+    // because DOMNodeList is live and mutations during iteration skip nodes.
+    foreach (iterator_to_array($xpath->query('//*[@id="comments"]')) as $node) {
       $node->parentNode->removeChild($node);
     }
 
     // Remove elements with data-drupal-selector="comments".
-    foreach ($xpath->query('//*[@data-drupal-selector="comments"]') as $node) {
+    foreach (iterator_to_array($xpath->query('//*[@data-drupal-selector="comments"]')) as $node) {
       $node->parentNode->removeChild($node);
     }
 
     // Remove "links inline" lists (contains "Log in to post comments").
-    foreach ($xpath->query('//ul[contains(@class, "links") and contains(@class, "inline")]') as $node) {
+    foreach (iterator_to_array($xpath->query('//ul[contains(@class, "links") and contains(@class, "inline")]')) as $node) {
       $node->parentNode->removeChild($node);
     }
 
     // Remove nav elements.
-    foreach ($xpath->query('//nav') as $node) {
+    foreach (iterator_to_array($xpath->query('//nav')) as $node) {
       $node->parentNode->removeChild($node);
     }
 
     // Convert <details>/<summary> (accordion paragraphs) to heading + content.
-    foreach ($xpath->query('//details') as $details) {
+    foreach (iterator_to_array($xpath->query('//details')) as $details) {
       $summary = $xpath->query('summary', $details)->item(0);
       $heading = $doc->createElement('h3');
       $heading->textContent = $summary ? trim($summary->textContent) : '';
       if ($summary) {
         $details->removeChild($summary);
       }
-      // Wrap remaining content in a paragraph.
-      $p = $doc->createElement('p');
-      $p->textContent = trim($details->textContent);
-      $details->parentNode->insertBefore($heading, $details);
-      $details->parentNode->insertBefore($p, $details);
-      $details->parentNode->removeChild($details);
+      // Move remaining child nodes to preserve inner HTML structure.
+      $parent = $details->parentNode;
+      $parent->insertBefore($heading, $details);
+      while ($details->firstChild) {
+        $parent->insertBefore($details->firstChild, $details);
+      }
+      $parent->removeChild($details);
     }
 
     // Convert <figure>/<figcaption> to img + italic caption.
-    foreach ($xpath->query('//figure') as $figure) {
+    foreach (iterator_to_array($xpath->query('//figure')) as $figure) {
       $img = $xpath->query('.//img', $figure)->item(0);
       $caption = $xpath->query('figcaption', $figure)->item(0);
       if ($img) {
@@ -172,7 +175,7 @@ final class MarkdownConverter implements MarkdownConverterInterface {
 
     // Replace <iframe> elements with link placeholders before HtmlConverter
     // strips them (iframe is in remove_nodes config).
-    foreach ($xpath->query('//iframe[@src]') as $iframe) {
+    foreach (iterator_to_array($xpath->query('//iframe[@src]')) as $iframe) {
       $src = $iframe->getAttribute('src');
       if (preg_match('#^https?://#i', $src)) {
         $p = $doc->createElement('p');

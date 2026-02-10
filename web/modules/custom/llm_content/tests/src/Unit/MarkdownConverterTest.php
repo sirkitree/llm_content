@@ -145,6 +145,18 @@ class MarkdownConverterTest extends TestCase {
   }
 
   /**
+   * Tests that details/summary preserves inner HTML (links, emphasis, etc.).
+   */
+  public function testDetailsSummaryPreservesInnerHtml(): void {
+    $html = '<details><summary>Title</summary><p>See <a href="/more">this link</a> and <em>emphasis</em>.</p></details>';
+    $result = $this->strip($html);
+
+    $this->assertStringContainsString('<h3>Title</h3>', $result);
+    $this->assertStringContainsString('<a href="/more">this link</a>', $result);
+    $this->assertStringContainsString('<em>emphasis</em>', $result);
+  }
+
+  /**
    * Tests combination of paragraph patterns in a single page.
    */
   public function testCombinedParagraphPatterns(): void {
