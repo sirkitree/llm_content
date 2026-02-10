@@ -47,7 +47,7 @@ final class LlmSitemapController extends ControllerBase {
           $xml->startElement('url');
 
           $xml->startElement('loc');
-          $xml->text($baseUrl . '/llm-md/node/' . $node->id());
+          $xml->text(Url::fromRoute('llm_content.markdown_view', ['node' => $node->id()], ['absolute' => TRUE])->toString());
           $xml->endElement();
 
           $xml->startElement('lastmod');
@@ -94,7 +94,7 @@ final class LlmSitemapController extends ControllerBase {
     ]);
 
     $cacheMetadata = new CacheableMetadata();
-    $cacheMetadata->addCacheTags(['llm_content:list', 'node_list']);
+    $cacheMetadata->addCacheTags(['llm_content:list', 'node_list', 'path_alias_list']);
     $cacheMetadata->addCacheContexts(['user.permissions']);
     $response->addCacheableDependency($cacheMetadata);
     $response->addCacheableDependency($config);
