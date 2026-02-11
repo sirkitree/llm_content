@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
  * Path processor for .md clean URLs.
  *
  * Inbound:  /{alias}.md  -> /node/{nid}/llm-md
- * Outbound: /node/{nid}/llm-md -> /{alias}.md
+ * Outbound: /node/{nid}/llm-md -> /{alias}.md.
  */
 final class LlmMarkdownPathProcessor implements InboundPathProcessorInterface, OutboundPathProcessorInterface {
 
@@ -57,7 +57,8 @@ final class LlmMarkdownPathProcessor implements InboundPathProcessorInterface, O
       return $path;
     }
 
-    $nodePath = substr($path, 0, -7); // Strip '/llm-md'.
+    // Strip '/llm-md'.
+    $nodePath = substr($path, 0, -7);
     $alias = $this->aliasManager->getAliasByPath($nodePath);
 
     if ($bubbleable_metadata) {

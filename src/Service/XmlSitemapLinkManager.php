@@ -36,6 +36,8 @@ final class XmlSitemapLinkManager implements XmlSitemapLinkManagerInterface {
   private const SYNC_BATCH_SIZE = 100;
 
   /**
+   * Constructs a new XmlSitemapLinkManager.
+   *
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
    *   The module handler.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory

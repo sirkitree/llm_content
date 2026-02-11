@@ -58,7 +58,8 @@ final class LlmSitemapController extends ControllerBase {
           $xml->text('weekly');
           $xml->endElement();
 
-          $xml->endElement(); // url
+          // Url.
+          $xml->endElement();
         }
         $nodeStorage->resetCache($batch);
       }
@@ -83,7 +84,8 @@ final class LlmSitemapController extends ControllerBase {
     $xml->endElement();
     $xml->endElement();
 
-    $xml->endElement(); // urlset
+    // Urlset.
+    $xml->endElement();
     $xml->endDocument();
 
     $output = $xml->outputMemory();

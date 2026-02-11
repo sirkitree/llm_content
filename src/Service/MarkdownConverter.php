@@ -202,7 +202,7 @@ final class MarkdownConverter implements MarkdownConverterInterface {
 
     // Convert Paragraphs accordion title fields to <h3> headings.
     // Paragraphs renders accordion titles as:
-    // <div class="field--name-field-accordion-title ...">Title text</div>
+    // <div class="field--name-field-accordion-title ...">Title text</div>.
     foreach (iterator_to_array($xpath->query('//*[contains(@class, "field--name-field-accordion-title")]')) as $titleDiv) {
       $heading = $doc->createElement('h3');
       $heading->textContent = trim($titleDiv->textContent);
@@ -211,8 +211,9 @@ final class MarkdownConverter implements MarkdownConverterInterface {
 
     // Convert Paragraphs media embed URL fields to clickable links.
     // Paragraphs renders embed URLs as plain text in:
-    // <div class="field--name-field-embed-url ...">https://youtube.com/...</div>
-    foreach (iterator_to_array($xpath->query('//*[contains(@class, "field--name-field-embed-url")]')) as $urlDiv) {
+    // Example: <div class="field--name-field-embed-url">https://...</div>
+    $query = '//*[contains(@class, "field--name-field-embed-url")]';
+    foreach (iterator_to_array($xpath->query($query)) as $urlDiv) {
       $url = trim($urlDiv->textContent);
       if (preg_match('#^https?://#i', $url)) {
         $p = $doc->createElement('p');

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\llm_content\Unit;
 
-use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\llm_content\Install\Requirements\LlmContentRequirements;
 use PHPUnit\Framework\TestCase;
 
