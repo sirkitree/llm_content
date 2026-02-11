@@ -67,7 +67,7 @@ final class LlmsTxtController extends ControllerBase {
               $description = $body->summary ?: mb_substr(strip_tags($body->value ?? ''), 0, 200);
             }
             else {
-              // Fallback: use already-stored markdown (read-only, no generation).
+              // Fallback: use stored markdown (read-only).
               $stored = $this->markdownConverter->getStoredMarkdown($node) ?? '';
               // Remove YAML frontmatter block.
               $stored = preg_replace('/^---\n.*?\n---\n+/s', '', $stored) ?? $stored;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\llm_content\Unit;
 
+use Drupal\node\NodeInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
@@ -154,7 +155,7 @@ class XmlSitemapLinkManagerTest extends TestCase {
   public function testSaveNodeLinkDoesNothingWhenDisabled(): void {
     $manager = $this->createUnavailableManager();
 
-    $node = $this->createStub(\Drupal\node\NodeInterface::class);
+    $node = $this->createStub(NodeInterface::class);
     $manager->saveNodeLink($node);
     $this->addToAssertionCount(1);
   }
