@@ -1,6 +1,10 @@
 services:
-  Drupal\llm_content\Drush\Commands\LlmContentCommands:
-    autowire: true
-    autoconfigure: true
+  llm_content.commands:
+    class: Drupal\llm_content\Drush\Commands\LlmContentCommands
+    arguments:
+      - '@Drupal\llm_content\Service\MarkdownConverterInterface'
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@database'
     tags:
       - { name: drush.command }
