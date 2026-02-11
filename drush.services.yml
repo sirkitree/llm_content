@@ -1,0 +1,6 @@
+services:
+  Drupal\llm_content\Drush\Commands\LlmContentCommands:
+    autowire: true
+    autoconfigure: true
+    tags:
+      - { name: drush.command }

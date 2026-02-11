@@ -9,10 +9,12 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\node\NodeInterface;
 use Drupal\path_alias\AliasManagerInterface;
 use League\HTMLToMarkdown\HtmlConverter;
+use Psr\Log\LoggerInterface;
 
 /**
  * Converts Drupal nodes to markdown and manages storage.
@@ -24,6 +26,11 @@ final class MarkdownConverter implements MarkdownConverterInterface {
    */
   protected HtmlConverter $htmlConverter;
 
+  /**
+   * The logger.
+   */
+  protected LoggerInterface $logger;
+
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
     protected RendererInterface $renderer,
@@ -32,7 +39,9 @@ final class MarkdownConverter implements MarkdownConverterInterface {
     protected Connection $database,
     protected DateFormatterInterface $dateFormatter,
     protected TimeInterface $time,
+    LoggerChannelFactoryInterface $loggerFactory,
   ) {
+    $this->logger = $loggerFactory->get('llm_content');
     $this->htmlConverter = new HtmlConverter([
       'strip_tags' => TRUE,
       'remove_nodes' => 'script style iframe nav header footer aside',
@@ -48,9 +57,18 @@ final class MarkdownConverter implements MarkdownConverterInterface {
     $viewMode = $config->get('view_mode') ?? 'full';
 
     // Render the node to HTML.
-    $viewBuilder = $this->entityTypeManager->getViewBuilder('node');
-    $build = $viewBuilder->view($node, $viewMode);
-    $html = (string) $this->renderer->renderInIsolation($build);
+    try {
+      $viewBuilder = $this->entityTypeManager->getViewBuilder('node');
+      $build = $viewBuilder->view($node, $viewMode);
+      $html = (string) $this->renderer->renderInIsolation($build);
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Failed to render node @nid for markdown conversion: @message', [
+        '@nid' => $node->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return '';
+    }
 
     // Strip comment sections and Drupal chrome using DOM for reliability.
     $html = $this->stripDrupalChrome($html);
