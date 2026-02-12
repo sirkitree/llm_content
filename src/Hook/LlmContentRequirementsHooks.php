@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\llm_content\Hook;
 
 use Drupal\Core\Extension\Requirement\RequirementSeverity;
+// phpcs:ignore Drupal.Classes.UnusedUseStatement.UnusedUse -- Used by #[Hook] attributes.
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 

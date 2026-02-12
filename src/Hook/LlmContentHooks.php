@@ -7,6 +7,7 @@ namespace Drupal\llm_content\Hook;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
+// phpcs:ignore Drupal.Classes.UnusedUseStatement.UnusedUse -- Used by #[Hook] attributes.
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\llm_content\Service\MarkdownConverterInterface;
 use Drupal\llm_content\Service\XmlSitemapLinkManagerInterface;
