@@ -14,9 +14,7 @@
     <exclude name="Drupal.Semantics.FunctionT.NotLiteralString"/>
   </rule>
 
-  <file>src</file>
-  <file>tests</file>
-  <file>llm_content.install</file>
+  <file>.</file>
 
   <exclude-pattern>*/vendor/*</exclude-pattern>
   <exclude-pattern>*/node_modules/*</exclude-pattern>
