@@ -7,6 +7,7 @@ namespace Drupal\llm_content\Hook;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -82,14 +83,16 @@ final class LlmContentHooks {
     if (!in_array($node->bundle(), $enabledTypes, TRUE) || !$node->isPublished()) {
       return;
     }
-    $url = Url::fromRoute('llm_content.markdown_view', ['node' => $node->id()])->toString();
+    /** @var \Drupal\Core\GeneratedUrl $generatedUrl */
+    $generatedUrl = Url::fromRoute('llm_content.markdown_view', ['node' => $node->id()])->toString(TRUE);
+    $generatedUrl->applyTo($page);
     $page['#attached']['html_head'][] = [
       [
         '#tag' => 'link',
         '#attributes' => [
           'rel' => 'alternate',
           'type' => 'text/markdown',
-          'href' => $url,
+          'href' => $generatedUrl->getGeneratedUrl(),
         ],
       ],
       'llm_content_alternate',
