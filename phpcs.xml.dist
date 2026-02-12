@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<ruleset name="llm_content">
+  <description>PHPCS standards for the LLM Content Drupal module.</description>
+
+  <arg name="colors"/>
+  <arg value="ps"/>
+  <arg name="extensions" value="php,inc,module,theme,install"/>
+
+  <rule ref="Drupal"/>
+  <rule ref="DrupalPractice"/>
+  <rule ref="Generic.PHP.RequireStrictTypes"/>
+
+  <rule ref="Drupal.Semantics.FunctionT">
+    <exclude name="Drupal.Semantics.FunctionT.NotLiteralString"/>
+  </rule>
+
+  <file>.</file>
+
+  <exclude-pattern>*/vendor/*</exclude-pattern>
+  <exclude-pattern>*/node_modules/*</exclude-pattern>
+</ruleset>
