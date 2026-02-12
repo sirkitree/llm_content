@@ -53,16 +53,23 @@ final class MarkdownGenerationWorker extends QueueWorkerBase implements Containe
    */
   public function processItem($data): void {
     if (empty($data['nid'])) {
+      $this->logger->warning('Queue item missing nid, skipping.');
       return;
     }
 
-    $node = $this->entityTypeManager->getStorage('node')->load($data['nid']);
-    if (!$node instanceof NodeInterface || !$node->isPublished()) {
+    $nid = $data['nid'];
+    $node = $this->entityTypeManager->getStorage('node')->load($nid);
+    if (!$node instanceof NodeInterface) {
+      $this->logger->notice('Node @nid not found, skipping.', ['@nid' => $nid]);
+      return;
+    }
+    if (!$node->isPublished()) {
+      $this->logger->notice('Node @nid is unpublished, skipping.', ['@nid' => $nid]);
       return;
     }
 
     $this->markdownConverter->convert($node);
-    $this->entityTypeManager->getStorage('node')->resetCache([$data['nid']]);
+    $this->entityTypeManager->getStorage('node')->resetCache([$nid]);
   }
 
 }

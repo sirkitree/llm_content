@@ -5,6 +5,5 @@ services:
       - '@Drupal\llm_content\Service\MarkdownConverterInterface'
       - '@config.factory'
       - '@entity_type.manager'
-      - '@database'
     tags:
       - { name: drush.command }

@@ -66,6 +66,7 @@ final class MarkdownConverter implements MarkdownConverterInterface {
       $this->logger->error('Failed to render node @nid for markdown conversion: @message', [
         '@nid' => $node->id(),
         '@message' => $e->getMessage(),
+        'exception' => $e,
       ]);
       return '';
     }
@@ -329,6 +330,27 @@ final class MarkdownConverter implements MarkdownConverterInterface {
     }
 
     return $output;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getNidsMissingMarkdown(array $types, int $limit = 0): array {
+    if (empty($types)) {
+      return [];
+    }
+
+    $query = $this->database->select('node_field_data', 'n');
+    $query->leftJoin('llm_content_markdown', 'm', 'n.nid = m.nid');
+    $query->addField('n', 'nid');
+    $query->condition('n.status', 1);
+    $query->condition('n.type', $types, 'IN');
+    $query->isNull('m.nid');
+    $query->distinct();
+    if ($limit > 0) {
+      $query->range(0, $limit);
+    }
+    return $query->execute()->fetchCol();
   }
 
 }

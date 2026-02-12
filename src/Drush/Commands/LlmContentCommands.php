@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\llm_content\Drush\Commands;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\llm_content\Service\MarkdownConverterInterface;
 use Drush\Attributes as CLI;
@@ -20,7 +19,6 @@ final class LlmContentCommands extends DrushCommands {
     protected MarkdownConverterInterface $markdownConverter,
     protected ConfigFactoryInterface $configFactory,
     protected EntityTypeManagerInterface $entityTypeManager,
-    protected Connection $database,
   ) {
     parent::__construct();
   }
@@ -45,7 +43,7 @@ final class LlmContentCommands extends DrushCommands {
     $config = $this->configFactory->get('llm_content.settings');
 
     if ($options['types']) {
-      $types = array_map('trim', explode(',', $options['types']));
+      $types = array_filter(array_map('trim', explode(',', $options['types'])));
     }
     else {
       $types = $config->get('enabled_content_types') ?? [];
@@ -56,19 +54,23 @@ final class LlmContentCommands extends DrushCommands {
       return;
     }
 
-    $query = $this->entityTypeManager->getStorage('node')->getQuery()
-      ->condition('status', 1)
-      ->condition('type', $types, 'IN')
-      ->accessCheck(FALSE);
-
-    if (!$options['force']) {
-      $existing = $this->database->query('SELECT DISTINCT nid FROM {llm_content_markdown}')->fetchCol();
-      if ($existing) {
-        $query->condition('nid', $existing, 'NOT IN');
-      }
+    $batchSize = (int) $options['batch-size'];
+    if ($batchSize < 1) {
+      $this->logger()->error('Batch size must be at least 1.');
+      return;
     }
 
-    $nids = $query->execute();
+    if ($options['force']) {
+      $nids = $this->entityTypeManager->getStorage('node')->getQuery()
+        ->condition('status', 1)
+        ->condition('type', $types, 'IN')
+        ->accessCheck(FALSE)
+        ->execute();
+    }
+    else {
+      $nids = $this->markdownConverter->getNidsMissingMarkdown($types);
+    }
+
     $total = count($nids);
 
     if ($total === 0) {
@@ -77,7 +79,6 @@ final class LlmContentCommands extends DrushCommands {
     }
 
     $this->logger()->notice("Processing {$total} nodes...");
-    $batchSize = (int) $options['batch-size'];
     $processed = 0;
     $failed = 0;
 

@@ -65,17 +65,9 @@ function _llm_content_queue_missing_nodes(): void {
     return;
   }
 
-  $database = \Drupal::database();
-  $existing = $database->query('SELECT DISTINCT nid FROM {llm_content_markdown}')->fetchCol();
-
-  $query = \Drupal::entityQuery('node')
-    ->condition('status', 1)
-    ->condition('type', $types, 'IN')
-    ->accessCheck(FALSE);
-  if ($existing) {
-    $query->condition('nid', $existing, 'NOT IN');
-  }
-  $nids = $query->execute();
+  /** @var \Drupal\llm_content\Service\MarkdownConverterInterface $converter */
+  $converter = \Drupal::service('Drupal\llm_content\Service\MarkdownConverterInterface');
+  $nids = $converter->getNidsMissingMarkdown($types);
 
   if (empty($nids)) {
     return;
