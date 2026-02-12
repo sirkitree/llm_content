@@ -9,6 +9,9 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 // phpcs:ignore Drupal.Classes.UnusedUseStatement.UnusedUse -- Used by #[Hook] attributes.
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
 use Drupal\llm_content\Service\MarkdownConverterInterface;
 use Drupal\llm_content\Service\XmlSitemapLinkManagerInterface;
 use Drupal\node\NodeInterface;
@@ -22,6 +25,8 @@ final class LlmContentHooks {
     protected MarkdownConverterInterface $markdownConverter,
     protected ConfigFactoryInterface $configFactory,
     protected XmlSitemapLinkManagerInterface $xmlSitemapLinkManager,
+    protected QueueFactory $queueFactory,
+    protected RouteMatchInterface $routeMatch,
   ) {}
 
   /**
@@ -59,6 +64,66 @@ final class LlmContentHooks {
       $this->xmlSitemapLinkManager->deleteNodeLink((int) $entity->id());
     }
     Cache::invalidateTags(['llm_content:list']);
+  }
+
+  /**
+   * Implements hook_page_attachments().
+   */
+  #[Hook('page_attachments')]
+  public function pageAttachments(array &$page): void {
+    if ($this->routeMatch->getRouteName() !== 'entity.node.canonical') {
+      return;
+    }
+    $node = $this->routeMatch->getParameter('node');
+    if (!$node instanceof NodeInterface) {
+      return;
+    }
+    $config = $this->configFactory->get('llm_content.settings');
+    $enabledTypes = $config->get('enabled_content_types') ?? [];
+    if (!in_array($node->bundle(), $enabledTypes, TRUE) || !$node->isPublished()) {
+      return;
+    }
+    /** @var \Drupal\Core\GeneratedUrl $generatedUrl */
+    $generatedUrl = Url::fromRoute('llm_content.markdown_view', ['node' => $node->id()])->toString(TRUE);
+    $generatedUrl->applyTo($page);
+    $page['#attached']['html_head'][] = [
+      [
+        '#tag' => 'link',
+        '#attributes' => [
+          'rel' => 'alternate',
+          'type' => 'text/markdown',
+          'href' => $generatedUrl->getGeneratedUrl(),
+        ],
+      ],
+      'llm_content_alternate',
+    ];
+  }
+
+  /**
+   * Implements hook_cron().
+   */
+  #[Hook('cron')]
+  public function cron(): void {
+    $config = $this->configFactory->get('llm_content.settings');
+    $types = $config->get('enabled_content_types') ?: [];
+    if (empty($types)) {
+      return;
+    }
+
+    // Limit queuing to 100 per cron run to prevent unbounded queue growth.
+    $nids = $this->markdownConverter->getNidsMissingMarkdown($types, 100);
+    if (empty($nids)) {
+      return;
+    }
+
+    $queue = $this->queueFactory->get('llm_content_markdown_generation');
+    foreach ($nids as $nid) {
+      $queue->createItem(['nid' => (int) $nid]);
+    }
+
+    \Drupal::logger('llm_content')->notice('Cron queued @count nodes for markdown generation.', [
+      '@count' => count($nids),
+    ]);
   }
 
   /**

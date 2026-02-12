@@ -62,4 +62,19 @@ interface MarkdownConverterInterface {
    */
   public function generateFullText(): string;
 
+  /**
+   * Finds published node IDs of given types that have no stored markdown.
+   *
+   * Uses a SQL anti-join for efficient querying on large sites.
+   *
+   * @param array $types
+   *   Content type machine names to check.
+   * @param int $limit
+   *   Maximum number of nids to return. 0 for no limit.
+   *
+   * @return array
+   *   Array of node IDs missing markdown.
+   */
+  public function getNidsMissingMarkdown(array $types, int $limit = 0): array;
+
 }

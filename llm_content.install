@@ -49,6 +49,41 @@ function llm_content_schema(): array {
 }
 
 /**
+ * Implements hook_install().
+ */
+function llm_content_install(): void {
+  _llm_content_queue_missing_nodes();
+}
+
+/**
+ * Queues published nodes that don't yet have generated markdown.
+ */
+function _llm_content_queue_missing_nodes(): void {
+  $config = \Drupal::config('llm_content.settings');
+  $types = $config->get('enabled_content_types') ?: [];
+  if (empty($types)) {
+    return;
+  }
+
+  /** @var \Drupal\llm_content\Service\MarkdownConverterInterface $converter */
+  $converter = \Drupal::service('Drupal\llm_content\Service\MarkdownConverterInterface');
+  $nids = $converter->getNidsMissingMarkdown($types);
+
+  if (empty($nids)) {
+    return;
+  }
+
+  $queue = \Drupal::queue('llm_content_markdown_generation');
+  foreach ($nids as $nid) {
+    $queue->createItem(['nid' => (int) $nid]);
+  }
+
+  \Drupal::logger('llm_content')->notice('Queued @count nodes for markdown generation.', [
+    '@count' => count($nids),
+  ]);
+}
+
+/**
  * Add xmlsitemap integration config defaults.
  */
 function llm_content_update_11001(): void {
