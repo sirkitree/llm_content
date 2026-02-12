@@ -341,12 +341,12 @@ final class MarkdownConverter implements MarkdownConverterInterface {
     }
 
     $query = $this->database->select('node_field_data', 'n');
-    $query->leftJoin('llm_content_markdown', 'm', 'n.nid = m.nid');
+    $query->leftJoin('llm_content_markdown', 'm', 'n.nid = m.nid AND n.langcode = m.langcode');
     $query->addField('n', 'nid');
     $query->condition('n.status', 1);
     $query->condition('n.type', $types, 'IN');
+    $query->condition('n.default_langcode', 1);
     $query->isNull('m.nid');
-    $query->distinct();
     if ($limit > 0) {
       $query->range(0, $limit);
     }
