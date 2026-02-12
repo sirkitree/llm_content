@@ -7,3 +7,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Dependencies
+/vendor/
+composer.lock

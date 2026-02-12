@@ -5,6 +5,8 @@
  * Bootstrap for llm_content unit tests.
  */
 
+declare(strict_types=1);
+
 // Composer autoloader (vendor is at project root, same level as web/).
 $autoloader = require dirname(__DIR__, 5) . '/vendor/autoload.php';
 
