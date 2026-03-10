@@ -7,8 +7,6 @@ namespace Drupal\llm_content\Hook;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
-// phpcs:ignore Drupal.Classes.UnusedUseStatement.UnusedUse -- Used by #[Hook] attributes.
-use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
@@ -32,7 +30,6 @@ final class LlmContentHooks {
   /**
    * Implements hook_entity_insert().
    */
-  #[Hook('entity_insert')]
   public function entityInsert(EntityInterface $entity): void {
     if (!$entity instanceof NodeInterface) {
       return;
@@ -43,7 +40,6 @@ final class LlmContentHooks {
   /**
    * Implements hook_entity_update().
    */
-  #[Hook('entity_update')]
   public function entityUpdate(EntityInterface $entity): void {
     if (!$entity instanceof NodeInterface) {
       return;
@@ -54,7 +50,6 @@ final class LlmContentHooks {
   /**
    * Implements hook_entity_delete().
    */
-  #[Hook('entity_delete')]
   public function entityDelete(EntityInterface $entity): void {
     if (!$entity instanceof NodeInterface) {
       return;
@@ -69,7 +64,6 @@ final class LlmContentHooks {
   /**
    * Implements hook_page_attachments().
    */
-  #[Hook('page_attachments')]
   public function pageAttachments(array &$page): void {
     if ($this->routeMatch->getRouteName() !== 'entity.node.canonical') {
       return;
@@ -102,7 +96,6 @@ final class LlmContentHooks {
   /**
    * Implements hook_cron().
    */
-  #[Hook('cron')]
   public function cron(): void {
     $config = $this->configFactory->get('llm_content.settings');
     $types = $config->get('enabled_content_types') ?: [];

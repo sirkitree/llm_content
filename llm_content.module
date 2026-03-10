@@ -1,0 +1,52 @@
+<?php
+
+/**
+ * @file
+ * Hook implementations for the LLM Content module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityInterface;
+
+/**
+ * Implements hook_entity_insert().
+ */
+function llm_content_entity_insert(EntityInterface $entity): void {
+  \Drupal::service('llm_content.hooks')->entityInsert($entity);
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function llm_content_entity_update(EntityInterface $entity): void {
+  \Drupal::service('llm_content.hooks')->entityUpdate($entity);
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function llm_content_entity_delete(EntityInterface $entity): void {
+  \Drupal::service('llm_content.hooks')->entityDelete($entity);
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function llm_content_page_attachments(array &$page): void {
+  \Drupal::service('llm_content.hooks')->pageAttachments($page);
+}
+
+/**
+ * Implements hook_cron().
+ */
+function llm_content_cron(): void {
+  \Drupal::service('llm_content.hooks')->cron();
+}
+
+/**
+ * Implements hook_xmlsitemap_link_info().
+ */
+function llm_content_xmlsitemap_link_info(): array {
+  return \Drupal::service('llm_content.xmlsitemap_hooks')->xmlsitemapLinkInfo();
+}

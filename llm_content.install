@@ -8,6 +8,32 @@
 declare(strict_types=1);
 
 /**
+ * Implements hook_requirements().
+ */
+function llm_content_requirements(string $phase): array {
+  $requirements = [];
+
+  if ($phase === 'install' || $phase === 'runtime') {
+    if (!class_exists('League\HTMLToMarkdown\HtmlConverter')) {
+      $requirements['llm_content_html_to_markdown'] = [
+        'title' => t('LLM Content - HTML to Markdown library'),
+        'description' => t('The league/html-to-markdown library is required. Run <code>composer require league/html-to-markdown:^5.0</code> in your project root.'),
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+    else {
+      $requirements['llm_content_html_to_markdown'] = [
+        'title' => t('LLM Content - HTML to Markdown library'),
+        'value' => t('Installed'),
+        'severity' => REQUIREMENT_OK,
+      ];
+    }
+  }
+
+  return $requirements;
+}
+
+/**
  * Implements hook_schema().
  */
 function llm_content_schema(): array {
@@ -86,7 +112,7 @@ function _llm_content_queue_missing_nodes(): void {
 /**
  * Add xmlsitemap integration config defaults.
  */
-function llm_content_update_11001(): void {
+function llm_content_update_10001(): void {
   $config = \Drupal::configFactory()->getEditable('llm_content.settings');
   $defaults = [
     'xmlsitemap_integration' => FALSE,

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\llm_content\Hook;
 
-// phpcs:ignore Drupal.Classes.UnusedUseStatement.UnusedUse -- Used by #[Hook] attributes.
-use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
@@ -21,7 +19,6 @@ final class LlmContentXmlSitemapHooks {
   /**
    * Implements hook_xmlsitemap_link_info().
    */
-  #[Hook('xmlsitemap_link_info')]
   public function xmlsitemapLinkInfo(): array {
     return [
       'llm_content' => [

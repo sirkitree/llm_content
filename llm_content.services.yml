@@ -1,10 +1,15 @@
 services:
-  _defaults:
-    autoconfigure: true
-    autowire: true
-
   Drupal\llm_content\Service\MarkdownConverterInterface:
     class: Drupal\llm_content\Service\MarkdownConverter
+    arguments:
+      - '@entity_type.manager'
+      - '@renderer'
+      - '@config.factory'
+      - '@path_alias.manager'
+      - '@database'
+      - '@date.formatter'
+      - '@datetime.time'
+      - '@logger.factory'
 
   Drupal\llm_content\Service\XmlSitemapLinkManagerInterface:
     class: Drupal\llm_content\Service\XmlSitemapLinkManager
@@ -15,8 +20,22 @@ services:
       - '@?xmlsitemap.link_storage'
       - '@datetime.time'
 
+  llm_content.hooks:
+    class: Drupal\llm_content\Hook\LlmContentHooks
+    arguments:
+      - '@Drupal\llm_content\Service\MarkdownConverterInterface'
+      - '@config.factory'
+      - '@Drupal\llm_content\Service\XmlSitemapLinkManagerInterface'
+      - '@queue'
+      - '@current_route_match'
+
+  llm_content.xmlsitemap_hooks:
+    class: Drupal\llm_content\Hook\LlmContentXmlSitemapHooks
+
   llm_content.route_subscriber:
     class: Drupal\llm_content\Routing\RouteSubscriber
+    arguments:
+      - '@config.factory'
     tags:
       - { name: event_subscriber }
 
