@@ -179,6 +179,10 @@ src/
 llm_content.module                    # LegacyHook shims for Drupal 10 compatibility
 ```
 
+## Contributing
+
+Issues and pull requests are welcome at https://github.com/Lullabot/llm_content.
+
 ## License
 
 GPL-2.0-or-later
